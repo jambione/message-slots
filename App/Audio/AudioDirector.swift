@@ -1,10 +1,5 @@
 import Foundation
-
-// Note: no `import GameCore`. The generated Xcode project (tools/generate_xcodeproj.py)
-// compiles the engine sources straight into the app target rather than linking a
-// separate module, so the GameCore types are already in scope here. Under SwiftPM
-// they *are* a module — if this file ever moves into a real framework target, the
-// import comes back.
+import GameCore
 
 /// Translates game events into sound.
 ///

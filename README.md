@@ -47,6 +47,15 @@ swift test
 
 Requires Xcode 15+ / Swift 5.9+. `GameCore` has no Apple-only dependencies in its required path, so it also builds and tests on Linux CI.
 
+To run the app on a simulator, or the same suite from Xcode:
+
+```bash
+python3 tools/generate_xcodeproj.py    # regenerate after adding/renaming files
+xcodebuild test -scheme MessageSlots -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
+The generated project has three targets — `GameCore.framework`, `MessageSlots.app`, and `GameCoreTests.xctest` — so the identical suite runs under both SwiftPM and Xcode. `Package.swift` remains the source of truth; the project file is generated, never hand-edited.
+
 ### Word pools
 
 Words are authored as CSV and compiled into the bundled JSON resource, with validation (duplicates, category coverage quotas, tier mix, points-per-tier sanity, and whether the pool can actually form sentences):

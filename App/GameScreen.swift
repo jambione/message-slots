@@ -1,3 +1,4 @@
+import GameCore
 import SwiftUI
 
 /// The whole Phase 0 prototype in one screen: story, reels, tray, lever.

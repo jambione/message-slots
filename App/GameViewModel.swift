@@ -1,4 +1,5 @@
 import Foundation
+import GameCore
 import Observation
 import SwiftUI
 

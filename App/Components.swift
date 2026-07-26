@@ -1,3 +1,4 @@
+import GameCore
 import SwiftUI
 
 // MARK: - Category colour coding

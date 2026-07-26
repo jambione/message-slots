@@ -68,6 +68,7 @@ POINTS_PER_UNUSED_TRY = 10
 STREAK_STEP, STREAK_CAP = 0.1, 2.0
 ALLITERATION_BONUS = 15
 RHYME_BONUS = 15
+ALL_REELS_BONUS = 25
 # Mirrors EconomyConfig.senseBonus (Sources/GameCore/Economy/EconomyConfig.swift).
 # Additive only — see evaluate_coherence() below and GAME_LOGIC.md §5.1.
 SENSE_BONUS = 30
@@ -478,6 +479,12 @@ def score_turn(tray, tries_remaining, stars, opening_words):
         style += RHYME_BONUS
     if evaluate_coherence(tray):
         style += SENSE_BONUS
+    # "Full House" — every word from the opening spin banked. Mirrors
+    # ScoreCalculator.swift; the engine requires a full opening table, so a spin
+    # that left a reel empty cannot qualify.
+    if (opening_words and len(opening_words) >= REEL_COUNT
+            and opening_words <= {w["text"] for w in tray}):
+        style += ALL_REELS_BONUS
 
     try_bonus = tries_remaining * POINTS_PER_UNUSED_TRY
     total = (raw * length_m * grammar_m * star_m + style + try_bonus)

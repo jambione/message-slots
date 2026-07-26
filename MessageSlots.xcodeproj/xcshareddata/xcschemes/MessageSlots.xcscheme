@@ -5,7 +5,7 @@
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E826F4E92A47243AFB3855BF"
+               BlueprintIdentifier = "6722DE6EFBFEC62F7EB7FA7F"
                BuildableName = "MessageSlots.app"
                BlueprintName = "MessageSlots"
                ReferencedContainer = "container:MessageSlots.xcodeproj">
@@ -15,13 +15,22 @@
    </BuildAction>
    <TestAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "66A2A38DA180B186073C084D"
+               BuildableName = "GameCoreTests.xctest"
+               BlueprintName = "GameCoreTests"
+               ReferencedContainer = "container:MessageSlots.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E826F4E92A47243AFB3855BF"
+            BlueprintIdentifier = "6722DE6EFBFEC62F7EB7FA7F"
             BuildableName = "MessageSlots.app"
             BlueprintName = "MessageSlots"
             ReferencedContainer = "container:MessageSlots.xcodeproj">
@@ -32,7 +41,7 @@
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E826F4E92A47243AFB3855BF"
+            BlueprintIdentifier = "6722DE6EFBFEC62F7EB7FA7F"
             BuildableName = "MessageSlots.app"
             BlueprintName = "MessageSlots"
             ReferencedContainer = "container:MessageSlots.xcodeproj">
