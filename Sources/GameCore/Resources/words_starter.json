@@ -1,0 +1,2331 @@
+{
+  "id": "words_starter",
+  "words": [
+    {
+      "text": "the",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 9.0
+    },
+    {
+      "text": "a",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 6.0
+    },
+    {
+      "text": "an",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 2.5
+    },
+    {
+      "text": "my",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 1.2
+    },
+    {
+      "text": "your",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "our",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 0.8
+    },
+    {
+      "text": "every",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 0.6
+    },
+    {
+      "text": "that",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 0.9
+    },
+    {
+      "text": "this",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 0.9
+    },
+    {
+      "text": "some",
+      "pos": [
+        "ART"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [],
+      "weight": 0.8
+    },
+    {
+      "text": "i",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "you",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "we",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "they",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "he",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "she",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "it",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "food",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "nobody",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "everyone",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "somebody",
+      "pos": [
+        "PRON"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "and",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "but",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "because",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "so",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "while",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "meanwhile",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "suddenly",
+      "pos": [
+        "ADV",
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "however",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "until",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "unless",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "afterwards",
+      "pos": [
+        "ADV",
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "therefore",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "nevertheless",
+      "pos": [
+        "CONJ"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "in",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "on",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "under",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "over",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "behind",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "inside",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "beneath",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "beyond",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "toward",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "without",
+      "pos": [
+        "PREP"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "dog",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "cat",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "bird",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "house",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "car",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "tree",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "friend",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "moon",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "sun",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "river",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "mountain",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "city",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "teacher",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "sandwich",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "food"
+      ]
+    },
+    {
+      "text": "robot",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "pirate",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "ghost",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "wizard",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "dragon",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "grandma",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "banana",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "food"
+      ]
+    },
+    {
+      "text": "sock",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "train",
+      "pos": [
+        "NOUN",
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "dance",
+      "pos": [
+        "NOUN",
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "dream",
+      "pos": [
+        "NOUN",
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "run",
+      "pos": [
+        "NOUN",
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "octopus",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "walrus",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "penguin",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "lighthouse",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "submarine",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [
+        "space"
+      ],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "volcano",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "detective",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "astronaut",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [
+        "space"
+      ],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "librarian",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "accordion",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "casserole",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "food"
+      ]
+    },
+    {
+      "text": "mustache",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "avalanche",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "carnival",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "raccoon",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "tornado",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "galaxy",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [
+        "space"
+      ],
+      "semantics": [
+        "place"
+      ]
+    },
+    {
+      "text": "treasure",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "kraken",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "telescope",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [
+        "space"
+      ],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "bagpipes",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "object"
+      ]
+    },
+    {
+      "text": "hamster",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "kaleidoscope",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "skulduggery",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "cathedral",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "labyrinth",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "mongoose",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "apocalypse",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "chandelier",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "platypus",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "rhinoceros",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "sarcophagus",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "hullabaloo",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "supernova",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [
+        "space"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "onomatopoeia",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "extravaganza",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "kerfuffle",
+      "pos": [
+        "NOUN"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "is",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "food",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "are",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "food",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "was",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "food",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "ran",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "ate",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "saw",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "sang",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "jumped",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "found",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "built",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "broke",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "loved",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "chased",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "sneezed",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "whispered",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "exploded",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "melted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "food",
+        "object"
+      ]
+    },
+    {
+      "text": "danced",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "stole",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "galloped",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "juggled",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "tangoed",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "wobbled",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": [
+        "animate",
+        "object"
+      ]
+    },
+    {
+      "text": "smuggled",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "devoured",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "levitated",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "serenaded",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "demolished",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate",
+        "object"
+      ]
+    },
+    {
+      "text": "plummeted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "squabbled",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "tiptoed",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "hijacked",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "orbited",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [
+        "space"
+      ],
+      "semantics": [
+        "animate",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "vanished",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": [
+        "abstract",
+        "animate",
+        "object",
+        "place"
+      ]
+    },
+    {
+      "text": "marinated",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": [
+        "animate"
+      ]
+    },
+    {
+      "text": "flabbergasted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "absconded",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "pirouetted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "hypnotized",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "catapulted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "ricocheted",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "bamboozled",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "capsized",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "rare",
+      "points": 6,
+      "tags": [
+        "pirate"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "discombobulated",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "defenestrated",
+      "pos": [
+        "VERB"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "big",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "small",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "red",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "old",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "new",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "happy",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "angry",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "sleepy",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "grumpy",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "sticky",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "haunted",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "tiny",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "loud",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "smelly",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "fancy",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "lost",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "velvet",
+      "pos": [
+        "ADJ",
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "enormous",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "invisible",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "suspicious",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "radioactive",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [
+        "space"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "soggy",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "majestic",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "reckless",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "ancient",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "ferocious",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "bewildered",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "glittering",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "melancholy",
+      "pos": [
+        "ADJ",
+        "NOUN"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "ludicrous",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "preposterous",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "iridescent",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "cantankerous",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "serendipitous",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 8,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "labyrinthine",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "unfathomable",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "incomprehensible",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "legendary",
+      "points": 10,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "quickly",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "slowly",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "loudly",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "badly",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 1,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "never",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "always",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "politely",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "furiously",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "magnificently",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 5,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "accidentally",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "gracefully",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "suspiciously",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 4,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "begrudgingly",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "inexplicably",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "rare",
+      "points": 7,
+      "tags": [],
+      "semantics": []
+    },
+    {
+      "text": "finally",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [
+        "ending"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "home",
+      "pos": [
+        "ADV",
+        "NOUN"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [
+        "ending"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "asleep",
+      "pos": [
+        "ADJ"
+      ],
+      "tier": "common",
+      "points": 2,
+      "tags": [
+        "ending"
+      ],
+      "semantics": []
+    },
+    {
+      "text": "forever",
+      "pos": [
+        "ADV"
+      ],
+      "tier": "uncommon",
+      "points": 3,
+      "tags": [
+        "ending"
+      ],
+      "semantics": []
+    }
+  ]
+}

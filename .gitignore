@@ -1,0 +1,16 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Python tooling
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
