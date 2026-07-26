@@ -2,133 +2,104 @@ import XCTest
 @testable import GameCore
 
 final class CPUPlayerTests: XCTestCase {
-    private let reducer = Fixture.reducer()
 
-    private func bot(_ skill: CPUSkill) -> CPUPlayer { CPUPlayer(skill: skill, reducer: reducer) }
-
-    // MARK: It finishes, and it finishes legally
-
-    func testBotAlwaysCompletesItsTurn() {
-        for seed in UInt64(0)..<120 {
-            let start = reducer.startTurn(playerID: "cpu", seed: seed)
-            let (finished, breakdown) = bot(.steady).playTurn(start, context: TurnContext())
-            XCTAssertEqual(finished.phase, .locked, "seed \(seed): bot failed to finish its turn")
-            XCTAssertNotNil(breakdown, "seed \(seed): no score produced")
-            XCTAssertGreaterThan(breakdown?.total ?? 0, 0)
-        }
+    private func engine() -> MatchEngine {
+        MatchEngine(reducer: Fixture.reducer(), pack: Fixture.pack)
     }
 
-    func testBotUsuallyBuildsAValidSentence() {
-        var valid = 0
-        let trials = 120
-        for seed in UInt64(0)..<UInt64(trials) {
-            let start = reducer.startTurn(playerID: "cpu", seed: seed)
-            let (_, breakdown) = bot(.steady).playTurn(start, context: TurnContext())
-            if breakdown?.isValidSentence == true { valid += 1 }
-        }
-        let rate = Double(valid) / Double(trials)
-        XCTAssertGreaterThan(rate, 0.75, "a steady CPU teammate should mostly produce sentences (got \(rate))")
-    }
-
-    func testBotNeverExceedsItsTries() {
-        for seed in UInt64(0)..<60 {
-            let start = reducer.startTurn(playerID: "cpu", seed: seed)
-            let (finished, _) = bot(.sharp).playTurn(start, context: TurnContext())
-            XCTAssertGreaterThanOrEqual(finished.triesRemaining, 0)
-            XCTAssertLessThanOrEqual(finished.tray.count, EconomyConfig.default.traySize)
-        }
-    }
-
-    // MARK: Determinism — bot turns must replay like human ones
-
-    func testBotTurnsAreDeterministicAndReplayable() {
-        let start = reducer.startTurn(playerID: "cpu", seed: 777)
-        let (finished, breakdown) = bot(.steady).playTurn(start, context: TurnContext())
-
-        let (replayed, _) = reducer.replay(seed: 777, playerID: "cpu", actions: finished.actionLog)
-        XCTAssertEqual(replayed.tray.map(\.entry.text), finished.tray.map(\.entry.text))
-        XCTAssertEqual(replayed.triesRemaining, finished.triesRemaining)
-        XCTAssertNotNil(breakdown)
-    }
-
-    func testBotTurnVerifiesLikeAHumanTurn() {
-        var match = MatchState(
-            mode: .passAndPlay,
-            players: [Player.cpu(.steady, id: "cpu0"), Player(id: "p1", name: "You")],
-            seed: 5
+    private func match() -> MatchState {
+        MatchState(
+            players: [Player(id: "a", name: "Ann"), Player.cpu(.steady, id: "bot")],
+            targetScore: 300,
+            seed: 31_337
         )
-        let engine = MatchEngine(reducer: reducer)
-        let context = engine.context(for: match)
-        guard let turn = engine.playCPUTurn(&match) else { return XCTFail("CPU turn did not complete") }
-
-        XCTAssertTrue(engine.verify(turn, context: context), "a CPU turn must be verifiable by the same rules")
-        XCTAssertEqual(match.currentPlayer.id, "p1", "turn should pass to the human")
-        XCTAssertGreaterThan(match.teamBank, 0)
     }
 
-    // MARK: Skill actually means something
+    /// The bot must actually solve the puzzle, not flail. Whatever it submits
+    /// has to be a real member of the category.
+    func testEverySkillSubmitsAWordInTheCategory() {
+        for skill in CPUSkill.allCases {
+            let engine = engine()
+            var match = match()
+            let (state, _, breakdown) = engine.playCPUTurn(&match, skill: skill)
+            let category = engine.category(for: match)
 
-    func testSharperSkillScoresHigherOnAverage() {
-        func averageScore(_ skill: CPUSkill) -> Double {
-            var total = 0
-            let trials = 80
-            for seed in UInt64(0)..<UInt64(trials) {
-                let start = reducer.startTurn(playerID: "cpu", seed: seed)
-                let (_, breakdown) = bot(skill).playTurn(start, context: TurnContext())
-                total += breakdown?.total ?? 0
+            guard let breakdown else {
+                XCTFail("\(skill) never locked in a word")
+                continue
             }
-            return Double(total) / Double(trials)
+            XCTAssertTrue(
+                category.accepts(breakdown.word),
+                "\(skill) submitted \(breakdown.word), which isn't in \(category.name)"
+            )
+            XCTAssertEqual(state.phase, .locked)
         }
-        XCTAssertGreaterThan(averageScore(.sharp), averageScore(.rookie))
     }
 
-    func testRookieBanksFasterThanSharp() {
+    func testCPUTurnsAreDeterministic() {
+        func run() -> String {
+            let engine = engine()
+            var match = match()
+            let (_, _, breakdown) = engine.playCPUTurn(&match, skill: .steady)
+            return breakdown?.word ?? ""
+        }
+        XCTAssertEqual(run(), run(), "a replayed CPU turn must play identically")
+    }
+
+    /// Skill is patience and ambition, never privilege — but it should still
+    /// show up in the results.
+    func testSharperSkillsReachLongerWordsOnAverage() {
         func averageLength(_ skill: CPUSkill) -> Double {
             var total = 0
-            let trials = 60
-            for seed in UInt64(0)..<UInt64(trials) {
-                let start = reducer.startTurn(playerID: "cpu", seed: seed)
-                let (finished, _) = bot(skill).playTurn(start, context: TurnContext())
-                total += finished.tray.count
+            var count = 0
+            for seed in UInt64(1)...25 {
+                let engine = engine()
+                var match = MatchState(
+                    players: [Player.cpu(skill, id: "bot")],
+                    targetScore: 9_999,
+                    seed: seed &* 7919
+                )
+                let (_, _, breakdown) = engine.playCPUTurn(&match, skill: skill)
+                if let breakdown, !breakdown.word.isEmpty {
+                    total += breakdown.word.count
+                    count += 1
+                }
             }
-            return Double(total) / Double(trials)
+            return count == 0 ? 0 : Double(total) / Double(count)
         }
-        XCTAssertLessThan(averageLength(.rookie), averageLength(.sharp))
-    }
 
-    // MARK: Mixed matches
-
-    func testHumanAndCPUCanShareAMatch() {
-        var match = MatchState(
-            mode: .story,
-            players: [Player(id: "p0", name: "You"), Player.cpu(.steady, id: "cpu1")],
-            story: Story(endingWord: "finally"),
-            seed: 11
+        XCTAssertGreaterThanOrEqual(
+            averageLength(.sharp), averageLength(.rookie),
+            "a patient bot should not do worse than a hasty one"
         )
-        let engine = MatchEngine(reducer: reducer)
-
-        // Human turn.
-        var state = engine.beginTurn(&match)
-        let context = engine.context(for: match)
-        (state, _) = reducer.reduce(state, .spin, context: context)
-        state.reels[0] = ReelFace(token: .word(Fixture.the))
-        state.reels[1] = ReelFace(token: .word(Fixture.octopus))
-        state.reels[2] = ReelFace(token: .word(Fixture.danced))
-        for reel in 0...2 { (state, _) = reducer.reduce(state, .bank(reel: reel), context: context) }
-        let (locked, effects) = reducer.reduce(state, .lockIn, context: context)
-        guard case .sentenceLocked(let breakdown)? = effects.last else { return XCTFail("no score") }
-        engine.completeTurn(&match, state: locked, breakdown: breakdown)
-
-        // CPU teammate answers.
-        XCTAssertTrue(match.currentPlayer.isCPU)
-        XCTAssertNotNil(engine.playCPUTurn(&match))
-        XCTAssertEqual(match.story?.sentences.count, 2)
-        XCTAssertEqual(match.currentPlayer.id, "p0")
     }
 
-    func testPlayCPUTurnDeclinesForHumanPlayers() {
-        var match = MatchState(mode: .passAndPlay, players: [Player(id: "p0", name: "You")], seed: 1)
-        let engine = MatchEngine(reducer: reducer)
-        XCTAssertNil(engine.playCPUTurn(&match))
+    /// A bot playing by different rules would be detectable, and the moment a
+    /// player suspects that, the co-op framing collapses.
+    func testCPUPlaysThroughTheSameReducer() {
+        let engine = engine()
+        var match = match()
+        let (state, _, _) = engine.playCPUTurn(&match, skill: .steady)
+
+        // Replaying the bot's own action log must reproduce its turn exactly.
+        var replay = TurnState(
+            playerID: state.playerID,
+            categoryID: state.categoryID,
+            categoryName: state.categoryName,
+            config: engine.reducer.config,
+            rng: SeededRNG(seed: state.rng.seed)
+        )
+        let context = engine.context(for: match)
+        for action in state.actionLog {
+            (replay, _) = engine.reducer.reduce(replay, action, context: context)
+        }
+        XCTAssertEqual(replay.word, state.word)
+    }
+
+    func testCPUNeverSpendsMoreThanItsTries() {
+        let engine = engine()
+        var match = match()
+        let (state, _, _) = engine.playCPUTurn(&match, skill: .sharp)
+        XCTAssertGreaterThanOrEqual(state.triesRemaining, 0)
     }
 }

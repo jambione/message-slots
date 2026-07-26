@@ -20,105 +20,107 @@ final class GameViewModel {
 
     private(set) var match: MatchState
     private(set) var turn: TurnState
-    private(set) var validity: ValidationResult = .empty
+    private(set) var check: WordCheck = .empty
     private(set) var lastTurn: CompletedTurn?
 
-    /// Transient banner text ("Extra try!", "Tray full").
     private(set) var toast: String?
-    private(set) var isHandoff = false
     private(set) var isCPUThinking = false
 
     var showScoreSheet: Bool = false
 
-    /// Master audio switch, surfaced in the header.
-    private(set) var audioOn = true
-
-    func startAudio() {
-        audio.start()
-    }
-
-    func toggleAudio() {
-        audioOn.toggle()
-        audio.setMusicEnabled(audioOn)
-        audio.setEffectsEnabled(audioOn)
-    }
+    /// Audio ships **off**.
+    ///
+    /// Two separate rounds of synthesised audio were reported as unpleasant by
+    /// the only person who can actually hear it, and the simulator's audio
+    /// stack is unreliable enough that I can't distinguish a real defect from
+    /// its buzzing. Until there's authored audio and a device to judge it on,
+    /// silence is the better default — a quiet game is fine, a game that makes
+    /// a bad noise is one you put down. The toggle is one tap away.
+    private(set) var audioOn = false
 
     // MARK: Setup
 
     init() {
-        let pool = (try? WordPool.bundled()) ?? WordPool(id: "empty", words: [])
-        let reducer = TurnReducer(pool: pool, validator: SentenceValidator(advisory: NaturalLanguageAdvisor()))
+        let pack = (try? CategoryPack.bundled())
+            ?? CategoryPack(id: "fallback", categories: [
+                WordCategory(id: "animals", name: "Animals", words: ["CAT", "DOG", "COW", "BAT", "OWL"])
+            ])
+        let reducer = TurnReducer()
         self.reducer = reducer
-        self.engine = MatchEngine(reducer: reducer)
+        self.engine = MatchEngine(reducer: reducer, pack: pack)
 
         var match = MatchState(
-            mode: .story,
+            mode: .passAndPlay,
             players: [Player(id: "you", name: "You"), Player.cpu(.steady, id: "cpu")],
-            targetScore: 600,
-            story: Story(endingWord: MatchEngine.drawEndingWord(pool: pool, rng: &Self.bootRNG) ?? "finally"),
+            targetScore: 400,
             seed: UInt64.random(in: 1...UInt64.max)
         )
-        self.turn = MatchEngine(reducer: reducer).beginTurn(&match)
+        self.turn = MatchEngine(reducer: reducer, pack: pack).beginTurn(&match)
         self.match = match
     }
-
-    private static var bootRNG = SeededRNG.random()
 
     // MARK: Derived state for the view
 
     var currentPlayerName: String { match.currentPlayer.name }
     var isCPUTurn: Bool { match.currentPlayer.isCPU }
+    var teamBank: Int { match.teamBank }
+    var targetScore: Int { match.targetScore }
+    var teamStreak: Int { match.teamStreak }
+    var reels: [ReelFace] { turn.reels }
+    var tray: [PlacedLetter] { turn.tray }
     var triesRemaining: Int { turn.triesRemaining }
     var maxTries: Int { reducer.config.triesPerTurn }
-    var tray: [PlacedWord] { turn.tray }
-    var reels: [ReelFace] { turn.reels }
-    var teamBank: Int { match.teamBank }
-    var targetScore: Int { match.targetScore ?? 0 }
-    var teamStreak: Int { match.teamStreak }
-    var storyText: String { match.story?.text ?? "" }
-    var endingWord: String { match.story?.endingWord ?? "" }
-    var pendingGem: Int? { turn.pendingGem }
-    var sentenceStars: Int { turn.sentenceStars }
+    var canSpin: Bool { turn.canSpin && !isCPUTurn }
+    var canLockIn: Bool { check.isSubmittable && !isCPUTurn }
     var heldBonuses: [BonusKind] { turn.heldBonuses }
-    var canSpin: Bool { turn.canSpin && !isHandoff && !isCPUTurn }
-    var canLockIn: Bool { turn.canLockIn && !isHandoff && !isCPUTurn }
-    var hasSpun: Bool { turn.phase != .ready }
+    var pendingGem: Int? { turn.pendingLetterGem }
+    var wordMultiplier: Int { turn.wordMultiplier }
+    var categoryName: String { turn.categoryName }
+    var categoryHint: String? { engine.category(for: match).hint }
+    var word: String { turn.word }
 
-    var sentencePreview: String {
-        tray.isEmpty ? "Drag words down to build a sentence" : Sentence.text(from: tray)
+    /// What the player has spelled, shown large above the tray.
+    var wordPreview: String {
+        turn.tray.isEmpty ? "Bank letters to spell a word" : turn.word
     }
 
-    /// What the tray still needs, phrased for a nudge under the meter.
-    var nudge: String? {
-        guard hasSpun, !tray.isEmpty, !validity.isValid else { return nil }
-        let missing = turn.missingCategories
-        if missing.isEmpty { return "Try reordering the words" }
-        return "Needs a " + missing.map(\.displayName).joined(separator: " and a ")
+    // MARK: Audio
+
+    func startAudio() {
+        // Don't even build the audio graph unless the player asks for sound.
+        guard audioOn else { return }
+        audio.start()
     }
 
-    // MARK: Intent
-
-    func spin() {
-        guard canSpin else { return }
-        send(.spin)
+    func toggleAudio() {
+        audioOn.toggle()
+        if audioOn { audio.start() }
+        audio.setMusicEnabled(audioOn)
+        audio.setEffectsEnabled(audioOn)
+        if !audioOn { audio.stop() }
     }
 
-    func bank(reel: Int) {
-        send(.bank(reel: reel))
-    }
+    // MARK: Player intent
 
+    func spin() { send(.spin) }
+    func bank(reel: Int) { send(.bank(reel: reel)) }
     func move(from: Int, to: Int) {
         guard from != to else { return }
         send(.reorder(from: from, to: to))
     }
-
-    func removeFromTray(_ index: Int) {
-        send(.removeFromTray(index: index))
-    }
-
+    func removeFromTray(_ index: Int) { send(.removeFromTray(index: index)) }
+    func playBlank(_ letter: String) { send(.playBlank(letter: letter)) }
     func lockIn() {
         guard canLockIn else { return }
         send(.lockIn)
+    }
+
+    func pass() { send(.pass) }
+
+    /// True when the player is genuinely stuck: no spins left and nothing
+    /// submittable. The UI must offer a way out whenever this is true.
+    var isStuck: Bool {
+        !isCPUTurn && !turn.canSpin && !check.isSubmittable && turn.phase != .locked
     }
 
     // MARK: Turn flow
@@ -131,35 +133,34 @@ final class GameViewModel {
 
     private func handle(_ effects: [Effect]) {
         for effect in effects {
-            // Audio reads the *previous* validity to detect the transition into
-            // a valid sentence, so it has to run before `validity` is updated
-            // below — otherwise the "yes" chime would fire on every tray change
-            // while the sentence stayed valid.
-            audio.handle(effect, turn: turn, validity: validity)
+            audio.handle(effect, turn: turn, check: check)
 
             switch effect {
-            case .validityChanged(let result):
-                validity = result
+            case .wordChecked(let result):
+                check = result
 
             case .tryGranted(let remaining):
                 flash("Extra try — \(remaining) left")
 
-            case .gemAttached(let multiplier, let word):
-                flash("×\(multiplier) on \(word)")
+            case .gemAttached(let multiplier, let letter):
+                flash("×\(multiplier) on \(letter)")
+
+            case .wordMultiplierRaised(let multiplier):
+                flash("Word ×\(multiplier)")
 
             case .bonusCollected(let kind):
                 flash(kind.displayName)
 
-            case .rustDecayed(let word, let remaining):
-                flash("\(word) rusting — \(remaining) pts")
+            case .blankPlayed(let letter):
+                flash("Blank played as \(letter)")
 
-            case .wordReturnedToReel:
-                break  // the word reappearing on its reel is feedback enough
+            case .letterReturnedToReel:
+                break  // the letter reappearing on its reel is feedback enough
 
-            case .wordDiscarded(let word):
-                flash("\(word) is gone — its reel already moved on")
+            case .letterDiscarded(let letter):
+                flash("\(letter) is gone — its reel already moved on")
 
-            case .sentenceLocked(let breakdown):
+            case .wordLocked(let breakdown):
                 complete(with: breakdown)
 
             case .rejected(let reason):
@@ -174,56 +175,54 @@ final class GameViewModel {
     private func complete(with breakdown: ScoreBreakdown) {
         lastTurn = engine.completeTurn(&match, state: turn, breakdown: breakdown)
         showScoreSheet = true
-        isHandoff = true
     }
 
     /// Called when the player dismisses the score sheet.
     func continueToNextTurn() {
         showScoreSheet = false
-        validity = .empty
+        turn = engine.beginTurn(&match)
+        check = .empty
 
         if match.currentPlayer.isCPU {
-            playCPUTurn()
-        } else {
-            turn = engine.beginTurn(&match)
-            isHandoff = false
+            runCPUTurn()
         }
     }
 
-    private func playCPUTurn() {
+    /// Plays the bot's turn at a watchable pace. It uses the same reducer a
+    /// human does, so nothing here can give it an advantage.
+    private func runCPUTurn() {
         isCPUThinking = true
-        // Deliberately paced: watching a teammate play is part of the fun, and
-        // an instant result would rob the table of the spin.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(700))
-            if let completed = engine.playCPUTurn(&match) {
-                lastTurn = completed
+            let (state, _, breakdown) = engine.playCPUTurn(&match, skill: .steady)
+            turn = state
+            isCPUThinking = false
+            if let breakdown {
+                lastTurn = engine.completeTurn(&match, state: state, breakdown: breakdown)
                 showScoreSheet = true
             }
-            isCPUThinking = false
-            turn = engine.beginTurn(&match)
-            isHandoff = false
         }
     }
 
-    // MARK: Feedback
+    // MARK: Toast
 
     private func flash(_ text: String) {
         toast = text
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.6))
+            try? await Task.sleep(for: .milliseconds(1600))
             if toast == text { toast = nil }
         }
     }
 
     private func message(for reason: Effect.Rejection) -> String {
         switch reason {
-        case .noTriesLeft: return "No tries left — lock in your sentence"
-        case .trayFull: return "Tray is full"
-        case .needTwoWords: return "Bank at least two words"
-        case .notAWord: return "Not a word in this pool"
+        case .noTriesLeft:      return "No tries left — submit your word"
+        case .trayFull:         return "No room for more letters"
+        case .wordTooShort:     return "Too short — \(reducer.config.minimumWordLength) letters minimum"
+        case .notInCategory:    return "Not a \(turn.categoryName.lowercased()) word"
         case .turnAlreadyLocked: return "Turn is finished"
-        case .reelNotReady, .invalidIndex, .nothingToSwap, .noSwapHeld, .noWildCardHeld:
+        case .noBlankHeld:      return "No blank tile held"
+        case .reelNotReady, .invalidIndex, .nothingToSwap, .noSwapHeld:
             return "Can't do that yet"
         }
     }

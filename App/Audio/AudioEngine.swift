@@ -70,6 +70,15 @@ final class AudioEngine {
 
     // MARK: Lifecycle
 
+    /// Builds the graph but leaves it **suspended**.
+    ///
+    /// A running `AVAudioEngine` holds the output hardware open even when every
+    /// sample it produces is silence, and an idle output path is exactly the
+    /// condition that produces a constant hum. This game is silent most of the
+    /// time — a player reading their sentence makes no sound for many seconds —
+    /// so keeping the tap open the whole session is both audibly worse and a
+    /// pointless battery drain. The engine now wakes on the first cue and
+    /// suspends again once every voice has died.
     func start() {
         guard !isRunning else { return }
         configureSession()
@@ -91,19 +100,56 @@ final class AudioEngine {
 
         engine.mainMixerNode.outputVolume = 0.9
 
-        do {
-            try engine.start()
-            isRunning = true
-        } catch {
-            // Audio is a nice-to-have, never a reason the game fails to run.
-            isRunning = false
+        // Graph is ready but deliberately not started — see `wake()`.
+        engine.prepare()
+        isRunning = true
+    }
+
+    // MARK: Wake / suspend
+
+    private var isAwake = false
+    private var idleWork: DispatchWorkItem?
+
+    /// Starts the output path if it isn't already running. Called on every cue.
+    private func wake() {
+        guard isRunning else { return }
+        if !isAwake {
+            do {
+                try engine.start()
+                isAwake = true
+            } catch {
+                // Audio is a nice-to-have, never a reason the game fails to run.
+                isAwake = false
+                return
+            }
         }
+        scheduleIdleCheck()
+    }
+
+    /// Suspends once nothing is sounding. The delay is generous so a rapid
+    /// series of cues doesn't stop and start the hardware repeatedly, which
+    /// would click.
+    private func scheduleIdleCheck() {
+        idleWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.isAwake else { return }
+            guard !self.pool.hasActiveVoices, !self.musicPlayer.isPlaying else {
+                self.scheduleIdleCheck()
+                return
+            }
+            self.engine.pause()
+            self.isAwake = false
+        }
+        idleWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
 
     func stop() {
         guard isRunning else { return }
+        idleWork?.cancel()
         musicPlayer.stop()
         engine.stop()
+        isAwake = false
         if let node = sourceNode { engine.detach(node) }
         if musicAttached { engine.detach(musicPlayer); musicAttached = false }
         sourceNode = nil
@@ -150,6 +196,8 @@ final class AudioEngine {
     /// Starts (or restarts) the loaded track, looping indefinitely.
     func playMusic(volume: Float = 0.35) {
         guard isRunning, let file = musicFile else { return }
+        // Music holds the engine awake for as long as it plays.
+        wake()
         musicPlayer.stop()
         musicPlayer.volume = volume
         scheduleMusicLoop(file)
@@ -178,13 +226,18 @@ final class AudioEngine {
     // MARK: Effects — main-thread API
 
     func play(_ cue: SoundCue, pitch: Double = 0) {
-        shared.withLock {
-            guard $0.effectsEnabled else { return }
+        // Return the flag rather than writing to a captured `var` — mutating a
+        // captured local from a `@Sendable` closure is a warning now and an
+        // error under Swift 6.
+        let accepted = shared.withLock { state -> Bool in
+            guard state.effectsEnabled else { return false }
             // Bounded queue: never let the game grow this without limit on the
             // audio thread's behalf.
-            if $0.cues.count > 24 { $0.cues.removeFirst() }
-            $0.cues.append((cue.rawValue, pitch))
+            if state.cues.count > 24 { state.cues.removeFirst() }
+            state.cues.append((cue.rawValue, pitch))
+            return true
         }
+        if accepted { wake() }
     }
 
     func setEffectsEnabled(_ enabled: Bool) {

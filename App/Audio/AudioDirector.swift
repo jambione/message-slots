@@ -53,34 +53,34 @@ final class AudioDirector {
     // Banking a word plays a mallet note, and the note is chosen by the word's
     // grammatical category. Two things fall out of that for free:
     //
-    //   1. Building a sentence plays a little melody, and "the grumpy octopus
-    //      tangoed" has a different tune than "dog cat moon". The tray becomes
-    //      audible, not just visible.
-    //   2. It reinforces the category taxonomy through a second sense, exactly
-    //      as the colour coding does (GRAPHICS.md §2.2) — useful for players
-    //      who can't rely on the colours at all.
+    //   1. Spelling a word plays a little melody, and it rises as the word gets
+    //      more valuable. The tray becomes audible, not just visible.
+    //   2. It gives letter value a second sensory channel alongside the colour
+    //      coding (GRAPHICS.md §2.2) — useful for players who can't rely on
+    //      colour at all.
     //
-    // The pitches are the F major pentatonic scale, so *any* order of words
-    // sounds consonant. A chromatic mapping would be more "informative" and
-    // would sound awful, which is the wrong trade: this has to be pleasant
-    // hundreds of times per session.
-    private func pitch(for pos: Set<PartOfSpeech>) -> Double {
-        // Content words sit high and bright, glue words low and soft — which
-        // matches their visual weight and their scoring weight.
-        if pos.contains(.noun)        { return 72 }  // C5
-        if pos.contains(.verb)        { return 74 }  // D5
-        if pos.contains(.adjective)   { return 77 }  // F5
-        if pos.contains(.adverb)      { return 79 }  // G5
-        if pos.contains(.pronoun)     { return 69 }  // A4
-        if pos.contains(.conjunction) { return 65 }  // F4
-        if pos.contains(.preposition) { return 67 }  // G4
-        return 62                                    // D4 — articles, lowest
+    // The pitches are the F major pentatonic scale, so *any* sequence of
+    // letters sounds consonant. A chromatic mapping would carry more
+    // information and would sound awful, which is the wrong trade: this fires
+    // on every banked letter, hundreds of times per session.
+    private func pitch(forLetterValue value: Int) -> Double {
+        // Cheap letters low and soft, the 8–10 pointers bright at the top, so
+        // landing a Z is audibly an event.
+        switch value {
+        case 0:      return 60   // blank — worth nothing, sits lowest
+        case 1:      return 65   // F4
+        case 2...3:  return 69   // A4
+        case 4...5:  return 72   // C5
+        case 6...8:  return 77   // F5
+        default:     return 81   // A5
+        }
     }
 
     // MARK: Effect handling
 
-    /// `tray` is the state *after* the effect applied, used for intensity.
-    func handle(_ effect: Effect, turn: TurnState, validity: ValidationResult?) {
+    /// `check` is the *previous* word check, used to detect the transition into
+    /// a submittable word.
+    func handle(_ effect: Effect, turn: TurnState, check: WordCheck?) {
         switch effect {
         case .reelsSpun:
             engine.play(.reelSpin)
@@ -89,16 +89,19 @@ final class AudioDirector {
             // docs/AUDIO.md as the next refinement.
             engine.play(.reelStop)
 
-        case .wordBanked(let trayIndex, _):
-            let pos = turn.tray.indices.contains(trayIndex)
-                ? turn.tray[trayIndex].entry.pos
-                : []
-            engine.play(.bankWord, pitch: pitch(for: pos))
+        case .letterBanked(let trayIndex, _):
+            let value = turn.tray.indices.contains(trayIndex)
+                ? turn.tray[trayIndex].tile.value
+                : 1
+            engine.play(.bankWord, pitch: pitch(forLetterValue: value))
 
-        case .wordReturnedToReel, .wordDiscarded:
+        case .blankPlayed:
+            engine.play(.bankWord, pitch: pitch(forLetterValue: 0))
+
+        case .letterReturnedToReel, .letterDiscarded:
             engine.play(.removeWord)
 
-        case .gemAttached, .bonusCollected:
+        case .gemAttached, .bonusCollected, .wordMultiplierRaised:
             engine.play(.bonus)
 
         case .tryGranted:
@@ -107,14 +110,14 @@ final class AudioDirector {
         case .frenzyStarted:
             engine.play(.frenzyStart)
 
-        case .validityChanged(let result):
-            // Only on the *transition* into valid — a chime on every keystroke
-            // of a valid sentence would be maddening.
-            if result.isValid, validity?.isValid != true {
+        case .wordChecked(let result):
+            // Only on the *transition* into submittable — a chime on every tray
+            // change while the word stayed valid would be maddening.
+            if result.isSubmittable, check?.isSubmittable != true {
                 engine.play(.validGreen)
             }
 
-        case .sentenceLocked:
+        case .wordLocked:
             engine.play(.lockIn)
 
         case .rejected:

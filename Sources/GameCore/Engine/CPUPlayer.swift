@@ -4,194 +4,195 @@ import Foundation
 ///
 /// Plays by exactly the same rules as a person: it emits `TurnAction`s into the
 /// same reducer, so its turn is recorded, replayable and verifiable like any
-/// other. Nothing is fabricated behind the scenes — the bot cannot see the RNG,
-/// re-roll a spin, or score points a human could not have scored.
+/// other. It never sees the RNG, never re-rolls, and never scores by a
+/// different formula. That matters for trust as much as for architecture — the
+/// moment a player suspects their teammate isn't playing fair, the cooperative
+/// framing collapses.
 ///
-/// Used for: solo play, filling an empty seat, keeping a match alive when a
-/// friend drops out mid-game, the tutorial's demo turn, and driving the headless
-/// balance simulator.
+/// Skill is expressed as *patience and ambition*, never privilege.
 public struct CPUPlayer: Sendable {
     public let skill: CPUSkill
-    public let reducer: TurnReducer
+    public let config: EconomyConfig
 
-    public init(skill: CPUSkill = .steady, reducer: TurnReducer) {
+    public init(skill: CPUSkill, config: EconomyConfig = .default) {
         self.skill = skill
-        self.reducer = reducer
+        self.config = config
     }
 
-    /// Safety valve: no bot turn may exceed this many actions.
-    public static let maxActionsPerTurn = 60
-
-    // MARK: Decision
-
-    /// The single next action the bot wants to take, or nil when it is done.
+    /// Chooses the next action, or nil when it wants to stop.
     public func nextAction(for state: TurnState, context: TurnContext) -> TurnAction? {
         guard state.phase != .locked else { return nil }
+
+        // Opening move.
         if state.phase == .ready { return .spin }
 
-        // 1. Free value first: collect bonus tokens sitting on the reels.
-        if let reel = bonusReelWorthTaking(state) { return .bank(reel: reel) }
+        let scorer = ScoreCalculator(config: config)
+        let banked = state.tray.map(\.tile.letter)
 
-        // 2. Fill the holes the sentence needs (a subject, then a verb).
-        if let reel = reelSatisfyingMissingCategory(state) { return .bank(reel: reel) }
-
-        // 3. Bank words that are good enough to spend a slot on.
-        if let reel = reelWorthBanking(state) { return .bank(reel: reel) }
-
-        // 4. Arrange the tray into its best order before judging it.
-        if let move = improvingReorder(state) { return move }
-
-        // 5. Spin again if that is still allowed and worthwhile.
-        if shouldSpinAgain(state) { return .spin }
-
-        // 6. Otherwise commit.
-        return state.canLockIn ? .lockIn : (state.canSpin ? .spin : nil)
-    }
-
-    /// Plays a whole turn to completion, returning the final state and the score.
-    public func playTurn(_ start: TurnState, context: TurnContext) -> (TurnState, ScoreBreakdown?) {
-        var state = start
-        var breakdown: ScoreBreakdown?
-
-        for _ in 0..<CPUPlayer.maxActionsPerTurn {
-            guard let action = nextAction(for: state, context: context) else { break }
-            let (next, effects) = reducer.reduce(state, action, context: context)
-
-            // A rejected action means the bot's model of the turn is stale;
-            // stop rather than spin forever.
-            if effects.contains(where: { if case .rejected = $0 { return true }; return false }),
-               next.tray.count == state.tray.count, next.triesRemaining == state.triesRemaining {
-                if state.canLockIn, breakdown == nil {
-                    let (locked, lockEffects) = reducer.reduce(state, .lockIn, context: context)
-                    state = locked
-                    breakdown = lockEffects.compactMap { if case .sentenceLocked(let b) = $0 { return b }; return nil }.first
-                }
-                break
-            }
-
-            state = next
-            if let found = effects.compactMap({ if case .sentenceLocked(let b) = $0 { return b }; return nil }).first {
-                breakdown = found
-                break
-            }
+        // Grab any bonus sitting on a reel — free value, no downside.
+        if let bonusReel = state.reels.indices.first(where: { state.reels[$0].isBonus }) {
+            return .bank(reel: bonusReel)
         }
-        return (state, breakdown)
-    }
 
-    // MARK: Heuristics
+        // What's the best word reachable from everything visible right now?
+        let visible = state.availableLetters
+        let blanks = state.heldBonuses.filter { $0 == .blank }.count
+        let candidates = context.category.words(spellableFrom: visible, blanks: blanks)
 
-    private func bonusReelWorthTaking(_ state: TurnState) -> Int? {
-        for (index, reel) in state.reels.enumerated() {
-            guard case .bonus(let kind)? = reel.token else { continue }
-            switch kind {
-            case .rust(_, let remaining):
-                // Take a rust word once it has decayed to roughly what a normal
-                // word is worth, or immediately if there is room and it is rich.
-                if remaining >= skill.greedThreshold + 2, state.tray.count < reducer.config.traySize { return index }
-            case .wildCard, .swap, .gift, .frenzy:
-                return index          // held bonuses cost nothing to collect
-            case .wordGem, .sentenceStar, .extraTry:
-                return index          // always worth taking
-            }
+        guard !candidates.isEmpty else {
+            // Nothing reachable. Spin if we can, otherwise submit whatever we
+            // have and take the consolation.
+            return state.canSpin ? .spin : (state.tray.isEmpty ? nil : .lockIn)
         }
-        return nil
+
+        let target = bestWord(candidates, visible: visible, scorer: scorer, state: state, context: context)
+
+        // Already spelling it? Lock in — but only if we're content with it.
+        if state.word == target {
+            let score = projectedScore(for: state, scorer: scorer, context: context)
+            let wantsMore = state.canSpin
+                && state.tray.count < skill.targetLength
+                && score < skill.greedThreshold
+            return wantsMore ? .spin : .lockIn
+        }
+
+        // Drop letters that aren't in the target word, cheapest first.
+        if let stray = strayTrayIndex(target: target, tray: state.tray) {
+            return .removeFromTray(index: stray)
+        }
+
+        // Bank the next letter the target needs.
+        if let reel = reelSupplying(nextLetterOf: target, state: state) {
+            return .bank(reel: reel)
+        }
+
+        // The target needs a letter we can't see. Spin for it, or settle.
+        if state.canSpin { return .spin }
+        return state.word.count >= config.minimumWordLength && context.category.accepts(state.word)
+            ? .lockIn
+            : (state.tray.isEmpty ? nil : .lockIn)
     }
 
-    /// Every unbanked reel showing a word, as (reel index, word).
-    private func availableWords(_ state: TurnState) -> [(reel: Int, word: WordEntry)] {
-        state.reels.indices.compactMap { index in
-            let reel = state.reels[index]
-            guard let word = reel.token?.word else { return nil }
-            return (index, word)
+    // MARK: Choosing a word
+
+    /// Picks the highest-scoring reachable word the skill level will commit to.
+    ///
+    /// Rookie takes the first thing that works — fast, chaotic, fun to watch.
+    /// Sharp holds out for length and heavy letters.
+    private func bestWord(
+        _ candidates: [String],
+        visible: [Character],
+        scorer: ScoreCalculator,
+        state: TurnState,
+        context: TurnContext
+    ) -> String {
+        // Sorted for determinism: a replayed CPU turn must choose identically.
+        let ordered = candidates.sorted()
+
+        switch skill {
+        case .rookie:
+            return ordered.min { lhs, rhs in
+                lhs.count == rhs.count ? lhs < rhs : lhs.count < rhs.count
+            } ?? ordered[0]
+
+        case .steady, .sharp:
+            return ordered.max { lhs, rhs in
+                let l = wordValue(lhs), r = wordValue(rhs)
+                return l == r ? lhs > rhs : l < r
+            } ?? ordered[0]
         }
     }
 
-    /// The bot's first duty is a legal sentence: a subject, then an action.
-    private func reelSatisfyingMissingCategory(_ state: TurnState) -> Int? {
-        guard state.tray.count < reducer.config.traySize else { return nil }
-        for needed in state.missingCategories {
-            let matches = availableWords(state).filter { candidate in
-                needed == .noun ? candidate.word.isNounCapable : candidate.word.can(be: needed)
-            }
-            // Take the most valuable option for the role.
-            if let best = matches.max(by: { $0.word.effectivePoints < $1.word.effectivePoints }) {
-                return best.reel
-            }
-        }
-        return nil
+    /// Rough value of a word, used only for the bot's own comparisons.
+    private func wordValue(_ word: String) -> Int {
+        let letters = word.reduce(0) { $0 + LetterTile.value(of: $1) }
+        let over = max(0, word.count - config.lengthBonusFloor)
+        return letters + over * over * config.lengthBonusStep
     }
 
-    private func reelWorthBanking(_ state: TurnState) -> Int? {
-        guard state.tray.count < min(skill.targetLength, reducer.config.traySize) else { return nil }
-
-        let trayIsValid = reducer.validator.validate(state.tray).isValid
-        // Only extend once the sentence already works; otherwise the bot risks
-        // filling the tray with adjectives and no verb.
-        guard trayIsValid || state.tray.count < 2 else { return nil }
-
-        // Late in the turn the bot lowers its standards — the same nerve a human loses.
-        let threshold = state.triesRemaining <= 1 ? 1 : skill.greedThreshold
-        let worthy = availableWords(state).filter { $0.word.effectivePoints >= threshold }
-        guard let best = worthy.max(by: { $0.word.effectivePoints < $1.word.effectivePoints }) else { return nil }
-
-        // Adding a word must not break a sentence that already works — but the
-        // bot, like a person, may slot it anywhere in the tray rather than only
-        // on the end. It banks now and tidies the order on the next step.
-        if trayIsValid, !anyInsertionKeepsSentenceValid(tray: state.tray, adding: best.word) {
-            return nil
-        }
-        return best.reel
+    private func projectedScore(
+        for state: TurnState,
+        scorer: ScoreCalculator,
+        context: TurnContext
+    ) -> Int {
+        scorer.score(
+            tray: state.tray,
+            context: .init(
+                triesRemaining: state.triesRemaining,
+                teamStreak: context.teamStreak,
+                wordMultiplier: state.wordMultiplier,
+                openingLetters: Array(state.openingLetters),
+                reelCount: config.reelCount
+            )
+        ).total
     }
 
-    private func anyInsertionKeepsSentenceValid(tray: [PlacedWord], adding word: WordEntry) -> Bool {
-        let candidate = PlacedWord(id: -1, entry: word)
-        for position in 0...tray.count {
-            var probe = tray
-            probe.insert(candidate, at: position)
-            if reducer.validator.validate(probe).isValid { return true }
-        }
-        return false
-    }
+    // MARK: Tray management
 
-    /// One-swap improvement search: if moving a word makes an invalid tray valid,
-    /// do it. Humans do this by dragging; the bot does it by looking.
-    private func improvingReorder(_ state: TurnState) -> TurnAction? {
-        guard state.tray.count >= 2, !reducer.validator.validate(state.tray).isValid else { return nil }
-        for from in state.tray.indices {
-            for to in state.tray.indices where to != from {
-                var probe = state.tray
-                let word = probe.remove(at: from)
-                probe.insert(word, at: to)
-                if reducer.validator.validate(probe).isValid {
-                    return .reorder(from: from, to: to)
-                }
+    /// A banked letter the target word doesn't need, if any.
+    private func strayTrayIndex(target: String, tray: [PlacedLetter]) -> Int? {
+        var need: [Character: Int] = [:]
+        for character in target { need[character, default: 0] += 1 }
+
+        for (index, placed) in tray.enumerated() {
+            let letter = placed.tile.letter
+            if let count = need[letter], count > 0 {
+                need[letter] = count - 1
+            } else {
+                return index
             }
         }
         return nil
     }
 
-    private func shouldSpinAgain(_ state: TurnState) -> Bool {
-        guard state.canSpin, state.triesRemaining > 0 else { return false }
-        // Always spin while the sentence is not yet legal.
-        if !reducer.validator.validate(state.tray).isValid { return true }
-        // Otherwise keep going only while short of the target length.
-        return state.tray.count < skill.targetLength
+    /// The reel holding the next letter the target word still needs.
+    private func reelSupplying(nextLetterOf target: String, state: TurnState) -> Int? {
+        var need: [Character: Int] = [:]
+        for character in target { need[character, default: 0] += 1 }
+        for placed in state.tray {
+            if let count = need[placed.tile.letter], count > 0 {
+                need[placed.tile.letter] = count - 1
+            }
+        }
+        let wanted = need.filter { $0.value > 0 }.keys
+        guard !wanted.isEmpty else { return nil }
+
+        // Deterministic: lowest reel index wins.
+        return state.reels.indices.first { index in
+            guard let tile = state.reels[index].tile else { return false }
+            return wanted.contains(tile.letter)
+        }
     }
 }
 
-// MARK: - Match integration
+// MARK: - Playing a whole CPU turn
 
 public extension MatchEngine {
-    /// Runs the current player's whole turn on the CPU and folds it into the match.
-    /// Returns nil when the current player is human.
-    @discardableResult
-    func playCPUTurn(_ match: inout MatchState) -> CompletedTurn? {
-        guard case .cpu(let skill) = match.currentPlayer.kind else { return nil }
-        let bot = CPUPlayer(skill: skill, reducer: reducer)
-        let turnContext = self.context(for: match)
-        let start = beginTurn(&match)
-        let (finished, breakdown) = bot.playTurn(start, context: turnContext)
-        guard let breakdown else { return nil }
-        return completeTurn(&match, state: finished, breakdown: breakdown)
+    /// Runs a CPU turn to completion, returning the final state and every
+    /// effect it produced so the UI can play the turn back at human pace.
+    func playCPUTurn(
+        _ match: inout MatchState,
+        skill: CPUSkill,
+        maxActions: Int = 60
+    ) -> (TurnState, [Effect], ScoreBreakdown?) {
+        var state = beginTurn(&match)
+        let turnContext = context(for: match)
+        let bot = CPUPlayer(skill: skill, config: reducer.config)
+
+        var effects: [Effect] = []
+        var breakdown: ScoreBreakdown?
+
+        for _ in 0..<maxActions {
+            guard let action = bot.nextAction(for: state, context: turnContext) else { break }
+            let (next, produced) = reducer.reduce(state, action, context: turnContext)
+            state = next
+            effects.append(contentsOf: produced)
+            for effect in produced {
+                if case .wordLocked(let result) = effect { breakdown = result }
+            }
+            if state.phase == .locked { break }
+        }
+
+        return (state, effects, breakdown)
     }
 }

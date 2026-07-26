@@ -1,0 +1,140 @@
+# Message Slots — starter category packs
+#
+# Format:
+#   @id | Display Name | optional hint
+#   word word word ...        (whitespace or newline separated, case-insensitive)
+#
+# THE CRITICAL PROPERTY IS SHORT WORDS.
+#
+# A turn offers 5 reels over 3 spins. The player will usually be choosing from
+# a handful of letters, so a category whose words are all 7+ letters is
+# unplayable no matter how well written it is. Every category below is weighted
+# hard toward 3-5 letter words, and each one needs a healthy set of 3-letter
+# entries or it will produce dead turns. When adding a category, count the
+# 3- and 4-letter words first — if there are fewer than ~15, it isn't ready.
+#
+# Compiled by tools/compile_categories.py into
+# Sources/GameCore/Resources/categories_starter.json
+
+@animals | Animals | Any creature — real, extinct, or mythical
+ant ape asp auk bat bee boa bug cat cow cub cur doe dog eel elk emu ewe fox
+gnu hen hog imp jay kid kit koi lamb ram rat ray roe sow sty tit tom yak owl
+pig pup ewe ox
+bear bird boar buck bull calf carp chic clam colt crab crow deer dove duck
+fawn fish flea foal frog gnat goat hare hawk herd hind ibex joey kite lark
+lion lynx mare mice mite mole moth mule newt orca oryx puma seal shad slug
+snake sole stag swan tick toad trout wasp wolf worm wren
+adder bison camel civet cobra coypu crane dingo eagle egret ferret finch
+gecko goose heron horse hyena koala lemur llama macaw mamba moose mouse otter
+panda perch quail raven rhino robin shark sheep skunk sloth snail snake
+spider stoat stork swift tapir tiger viper vixen whale zebra
+badger beaver beetle cattle condor coyote donkey falcon gerbil gibbon iguana
+impala insect jackal jaguar kitten lizard locust magpie marmot monkey mullet
+ocelot osprey oyster parrot piglet possum python rabbit salmon shrimp spider
+turtle walrus weasel wombat
+
+@instruments | Musical Instruments | The instrument itself, not the music
+uke sax lyre drum fife gong harp horn kazoo lute oboe pipe reed tuba viol bell
+banjo bugle cello chime clave conga flute organ piano shawm sitar snare tabla
+tabor viola
+guitar violin cornet fiddle guiro kalimba maraca marimba
+bassoon cymbal timpani trumpet ukulele
+clarinet dulcimer keyboard mandolin recorder trombone
+accordion harmonica saxophone synthesizer xylophone bagpipes castanets
+harpsichord tambourine
+
+@food | Food & Drink | Anything you can eat or drink
+ale bap bun cod dal dip egg fig gin ham hop ice jam nut oat oil pea pie rum
+rye soy tea yam bran brie cake chip corn crab cream curd date duck fish flan
+gelato hash herb kale lamb leek lime loaf mash meat melt milk mint miso naan
+oats okra pate pear peas pita plum pork rice roll rusk sage salt slaw soda
+soup stew suet sushi taco tart tofu tuna veal wine
+apple bacon bagel basil beans berry bread broth cider cocoa curry dough
+flour fruit grape gravy honey jelly juice lemon mango maple melon mocha
+nacho olive onion pasta pasty peach pecan pesto pizza prawn punch salad
+salsa sauce scone steak sugar syrup toast wafer wheat
+almond banana batter biscuit brandy butter carrot celery cereal cheese cherry
+coffee cookie cracker crumpet custard dinner ginger gnocchi lentil lettuce
+muffin mussel noodle nougat nutmeg omelet orange oyster paella pepper pickle
+potato pretzel pudding quiche radish raisin ravioli risotto salami sardine
+sausage sherry sorbet spinach sponge squash tomato truffle turnip vanilla
+walnut yogurt
+
+@body | Body Parts | Parts of a body, human or animal
+arm ear eye fin gum hip jaw leg lip paw rib toe fur hoof horn
+back beak bone brow calf cell chin claw ears face fang foot gill hair hand
+head heel iris knee limb lobe lung nail neck nose palm scab scar shin skin
+skull snout sole spur tail talon teeth thigh thumb toes tusk vein wing wrist
+ankle artery cheek chest colon cornea elbow femur finger gland heart kidney
+liver marrow mouth muscle nerve nostril pelvis retina ribcage shin shoulder
+sinew spine spleen stomach temple tendon throat tongue tonsil
+
+@colours | Colours | Colours and shades
+red tan jet dun
+aqua blue cyan drab ecru fawn gold grey jade lime navy onyx pink puce roan
+rose ruby rust sage teal
+amber azure beige black brown coral cream ivory khaki lemon mauve ochre olive
+peach pearl plum sepia taupe umber white
+bronze cerise cherry claret copper indigo maroon orange purple russet salmon
+scarlet silver violet yellow
+burgundy charcoal lavender magenta
+
+@clothing | Clothing | Things you wear
+bib bra cap fez hat kit rag tie top wig
+belt boot cape coat cuff garb gown hood kilt lace mask mitt robe sari sash
+scarf shoe silk sock suit tights toga tutu vest wrap
+apron beret blazer blouse bonnet braces buckle button cardi cloak collar
+corset cravat denim dress frock glove jacket jeans jersey jumper mitten
+poncho romper sandal shawl shirt shoes shorts skirt slacks slippers sweater
+trousers tunic
+anorak bikini cagoule dungarees leggings overall pyjamas raincoat sweatshirt
+tracksuit turtleneck waistcoat
+
+@nature | Nature & Weather | The natural world
+air bay bog dew fen fog ice ivy log mud oak sea sky sun bud elm fir hay
+cave cliff cloud coast creek crag dale dawn dune dusk fern fire flood frost
+gale glen grass grove gust hail haze heat hill isle lake leaf mist moon moor
+moss peak peat pine pond rain reef reed ridge river rock roots sand seed
+shore silt sleet slope smog snow soil star stem stone storm surf swamp thaw
+tide tree twig vale vine wave wind wood
+autumn boulder branch breeze canyon cliffs desert forest galaxy geyser glacier
+gravel island jungle lagoon meadow monsoon mountain pebble planet plateau
+prairie rainbow ravine savanna season shadow shower spring stream summer
+sunset thunder tundra valley volcano waterfall weather willow winter
+
+@sport | Sport | Sports, equipment and moves
+bat bow cup gym jog lap net par pit run ski tee try win
+ball base bout dive dunk foul game goal golf grip gymn hoop hurl judo kick
+lane luge mast oars pace polo pool puck race rink rowing rugby serve shot
+skate slam sled sumo surf swim team tennis throw toss vault
+archery batting bowling boxing bunker caddie catch clubs court cricket cycle
+darts decathlon derby discus diving fencing hockey hurdle innings javelin
+karate league marathon medal netball offside paddle pitch racket referee
+relay rowing rugby runner saddle skiing soccer sprint squash stadium stumps
+tackle target trophy umpire wicket
+
+@household | Household Objects | Things around the home
+bed bin box cot cup fan jar jug key lid mat mop nut pan peg pin pot rug tap
+tin tub urn vat
+bath bowl bulb chair clock comb desk dish door duvet fork hook iron kettle
+lamp lock oven pane plate plug rack rake sink soap sofa spoon stool stove
+table tile tray vase whisk
+basin basket blanket blender bucket candle carpet cistern cleaner cupboard
+curtain cushion drawer dustpan freezer griddle grinder hamper kettle ladder
+mattress mirror pillow radiator saucepan scissors shelf shower sponge
+teapot toaster towel vacuum wardrobe washer window
+
+@jobs | Jobs | Occupations and trades
+cop spy vet gm ref rep pro hand maid crew boss
+aide bard chef cook dean hand herd host maid mate mime monk nun page poet
+sage seer serf smith tutor usher
+chef clerk cook crew dean guard guide judge mason medic monk nurse pilot
+poet priest scout smith tutor usher vicar
+actor agent artist baker banker barber bishop broker butler butcher cantor
+carter caster censor cleric dancer dealer doctor driver editor farmer fitter
+gaffer glazier grocer hunter jailer janitor jester joiner keeper knight
+lawyer lector logger maker mayor miller miner minter nanny nurse oiler
+painter pastor porter potter priest ranger reaper rector sailor salter
+sawyer scribe sealer seller sexton shaper shears singer skater slater
+smelter soldier sorter spinner steward tailor tanner teacher tinker trader
+turner usher vendor waiter warden weaver welder worker writer

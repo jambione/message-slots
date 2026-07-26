@@ -281,6 +281,13 @@ final class VoicePool {
     func allNotesOff() {
         for i in storage.indices { storage[i].active = false }
     }
+
+    /// Whether anything is still sounding. Used to decide when the engine can
+    /// be suspended — see AudioEngine's idle handling.
+    var hasActiveVoices: Bool {
+        for i in storage.indices where storage[i].active { return true }
+        return false
+    }
 }
 
 // MARK: - Pitch helpers

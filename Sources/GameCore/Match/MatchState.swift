@@ -4,74 +4,73 @@ import Foundation
 /// action list are enough for any device to reconstruct the turn exactly — for
 /// verification, and for the "watch what your teammate did" replay.
 public struct CompletedTurn: Codable, Hashable, Sendable, Identifiable {
-    public let id: Int
-    public let playerID: String
-    public let playerName: String
-    public let seed: UInt64
-    public let actions: [TurnAction]
-    public let giftsReceived: [BonusKind]
-    public let sentence: String
-    public let words: [String]
-    public let breakdown: ScoreBreakdown
-    /// Optional language-model flavour award, computed once on the author's
-    /// device and carried along (never recomputed — see SentenceJudge).
-    public var verdict: JudgeVerdict?
-
-    public var score: Int { breakdown.total + (verdict?.awardPoints ?? 0) }
+    public var id: UUID
+    public var playerID: String
+    public var playerName: String
+    public var categoryID: String
+    public var categoryName: String
+    public var word: String
+    public var breakdown: ScoreBreakdown
+    public var seed: UInt64
+    public var actions: [TurnAction]
 
     public init(
-        id: Int, playerID: String, playerName: String, seed: UInt64,
-        actions: [TurnAction], giftsReceived: [BonusKind] = [],
-        sentence: String, words: [String], breakdown: ScoreBreakdown,
-        verdict: JudgeVerdict? = nil
+        id: UUID = UUID(),
+        playerID: String,
+        playerName: String,
+        categoryID: String,
+        categoryName: String,
+        word: String,
+        breakdown: ScoreBreakdown,
+        seed: UInt64,
+        actions: [TurnAction]
     ) {
         self.id = id
         self.playerID = playerID
         self.playerName = playerName
+        self.categoryID = categoryID
+        self.categoryName = categoryName
+        self.word = word
+        self.breakdown = breakdown
         self.seed = seed
         self.actions = actions
-        self.giftsReceived = giftsReceived
-        self.sentence = sentence
-        self.words = words
-        self.breakdown = breakdown
-        self.verdict = verdict
     }
+
+    public var score: Int { breakdown.total }
 }
 
-/// Everything a match needs to survive a device change, an app relaunch, or a
-/// week between turns.
+/// Everything shared across a match.
 public struct MatchState: Codable, Hashable, Sendable {
     public var mode: GameMode
     public var connectivity: Connectivity
     public var players: [Player]
     public var currentPlayerIndex: Int
+
+    /// Every player's score pools here. There is no individual leaderboard in
+    /// co-op modes — a weak turn by your friend is your problem too, which is
+    /// the whole social loop.
     public var teamBank: Int
+    public var targetScore: Int
+    /// Shared across the team, broken by any turn that fails to submit a word.
     public var teamStreak: Int
     public var roundIndex: Int
-    public var turnsPerRound: Int
-    public var turnsTakenThisRound: Int
-    public var targetScore: Int?
-    public var themeTag: String?
-    public var story: Story?
-    public var history: [CompletedTurn]
-    /// Gifts waiting for each player, keyed by player id.
-    public var pendingGifts: [String: [BonusKind]]
-    /// Seed source for future turns, so the whole match is reproducible.
-    public var matchRNG: SeededRNG
 
-    public var currentPlayer: Player { players[currentPlayerIndex] }
-    public var isComplete: Bool {
-        if let target = targetScore { return teamBank >= target || roundIndex > 3 }
-        return roundIndex > 3
-    }
+    /// The category for the turn in progress.
+    public var currentCategoryID: String
+    /// Recently used categories, so a match doesn't repeat itself immediately.
+    public var recentCategoryIDs: [String]
+
+    public var turnHistory: [CompletedTurn]
+    /// Bonuses queued for the next player by a Gift token.
+    public var pendingGifts: [String: [BonusKind]]
+
+    public var seed: UInt64
 
     public init(
-        mode: GameMode,
+        mode: GameMode = .passAndPlay,
         connectivity: Connectivity = .localDevice,
         players: [Player],
-        targetScore: Int? = nil,
-        themeTag: String? = nil,
-        story: Story? = nil,
+        targetScore: Int = 400,
         seed: UInt64
     ) {
         self.mode = mode
@@ -79,202 +78,179 @@ public struct MatchState: Codable, Hashable, Sendable {
         self.players = players
         self.currentPlayerIndex = 0
         self.teamBank = 0
-        self.teamStreak = 0
-        self.roundIndex = 1
-        self.turnsPerRound = max(2, players.count * 2)
-        self.turnsTakenThisRound = 0
         self.targetScore = targetScore
-        self.themeTag = themeTag
-        self.story = story
-        self.history = []
+        self.teamStreak = 0
+        self.roundIndex = 0
+        self.currentCategoryID = ""
+        self.recentCategoryIDs = []
+        self.turnHistory = []
         self.pendingGifts = [:]
-        self.matchRNG = SeededRNG(seed: seed)
+        self.seed = seed
     }
+
+    public var currentPlayer: Player { players[currentPlayerIndex % players.count] }
+    public var isComplete: Bool { teamBank >= targetScore }
 }
 
-/// Drives a match across turns: hands out seeds, applies results to the shared
-/// bank, moves gifts between players, and advances the story.
-///
-/// Deliberately transport-agnostic. Pass-and-play, remote async and same-room
-/// live all call exactly these methods; only the delivery of `CompletedTurn`
-/// differs (ARCHITECTURE.md §9).
+// MARK: - Engine
+
+/// Drives the turn lifecycle: choosing a category, beginning a turn, banking
+/// the score, passing the phone.
 public struct MatchEngine: Sendable {
     public let reducer: TurnReducer
+    public let pack: CategoryPack
 
-    public init(reducer: TurnReducer) { self.reducer = reducer }
+    public init(reducer: TurnReducer, pack: CategoryPack) {
+        self.reducer = reducer
+        self.pack = pack
+    }
 
-    public var config: EconomyConfig { reducer.config }
+    /// Category for the turn about to start, drawn deterministically so a
+    /// replayed match picks the same one.
+    public func drawCategory(_ match: inout MatchState) -> WordCategory {
+        var rng = SeededRNG(seed: match.seed &+ UInt64(match.turnHistory.count) &* 0x9E37_79B9)
+        let recent = Set(match.recentCategoryIDs.suffix(3))
+        let category = pack.draw(using: &rng, excluding: recent)
+            ?? pack.categories.first!
+        match.currentCategoryID = category.id
+        match.recentCategoryIDs.append(category.id)
+        return category
+    }
 
-    /// Context for the player whose turn it is.
+    public func category(for match: MatchState) -> WordCategory {
+        pack.category(id: match.currentCategoryID) ?? pack.categories.first!
+    }
+
     public func context(for match: MatchState) -> TurnContext {
-        TurnContext(
-            mode: match.mode,
-            story: match.story,
-            teamStreak: match.teamStreak,
-            themeTag: match.themeTag,
-            isFinalTurnOfChapter: match.turnsTakenThisRound == match.turnsPerRound - 1
-        )
+        TurnContext(mode: match.mode, teamStreak: match.teamStreak, category: category(for: match))
     }
 
-    /// Begin the current player's turn, consuming a match-level seed so the
-    /// sequence of turns is itself reproducible.
+    /// Starts the next player's turn.
     public func beginTurn(_ match: inout MatchState) -> TurnState {
+        let category = drawCategory(&match)
         let player = match.currentPlayer
-        let seed = match.matchRNG.next()
-        let gifts = match.pendingGifts[player.id] ?? []
-        match.pendingGifts[player.id] = []
-        return reducer.startTurn(playerID: player.id, seed: seed, gifts: gifts)
+
+        var state = TurnState(
+            playerID: player.id,
+            categoryID: category.id,
+            categoryName: category.name,
+            config: reducer.config,
+            rng: SeededRNG(seed: match.seed &+ UInt64(match.turnHistory.count &+ 1) &* 0x2545_F491)
+        )
+
+        // Gifts a teammate sent arrive before the first spin.
+        if let gifts = match.pendingGifts[player.id], !gifts.isEmpty {
+            state.receivedGifts = gifts
+            for gift in gifts {
+                switch gift {
+                case .extraTry: state.triesRemaining += 1
+                case .letterGem(let m): state.pendingLetterGem = max(state.pendingLetterGem ?? 1, m)
+                case .wordGem(let m): state.wordMultiplier *= m
+                default: state.heldBonuses.append(gift)
+                }
+            }
+            match.pendingGifts[player.id] = []
+        }
+
+        return state
     }
 
-    /// Fold a locked turn into the match: bank the score, roll the streak,
-    /// extend the story, pass gifts, and advance to the next player.
+    /// Banks a finished turn and advances to the next player.
     @discardableResult
     public func completeTurn(
         _ match: inout MatchState,
         state: TurnState,
-        breakdown: ScoreBreakdown,
-        verdict: JudgeVerdict? = nil
+        breakdown: ScoreBreakdown
     ) -> CompletedTurn {
         let player = match.currentPlayer
-        let sentence = Sentence.text(from: state.tray)
 
-        let completed = CompletedTurn(
-            id: match.history.count,
+        let turn = CompletedTurn(
             playerID: player.id,
             playerName: player.name,
-            seed: state.rng.seed,
-            actions: state.actionLog,
-            giftsReceived: state.receivedGifts,
-            sentence: sentence,
-            words: state.tray.map(\.entry.text),
+            categoryID: state.categoryID,
+            categoryName: state.categoryName,
+            word: breakdown.word,
             breakdown: breakdown,
-            verdict: verdict
+            seed: state.rng.seed,
+            actions: state.actionLog
         )
 
-        match.history.append(completed)
-        match.teamBank += completed.score
+        match.teamBank += breakdown.total
+        match.teamStreak = breakdown.total > 0 ? match.teamStreak + 1 : 0
+        match.turnHistory.append(turn)
 
-        // The streak is shared: a teammate's rough turn is everyone's problem,
-        // which is precisely what makes people coach each other.
-        match.teamStreak = breakdown.isValidSentence ? match.teamStreak + 1 : 0
-
-        // Gifts land on the *next* player, at boosted potency.
+        // Gift tokens still held at lock-in pass to the next player, boosted.
+        let nextIndex = (match.currentPlayerIndex + 1) % match.players.count
+        let nextPlayer = match.players[nextIndex]
         let giftCount = state.heldBonuses.filter { $0 == .gift }.count
         if giftCount > 0 {
-            let recipient = match.players[(match.currentPlayerIndex + 1) % match.players.count]
-            var giftRNG = match.matchRNG
-            for _ in 0..<giftCount {
-                match.pendingGifts[recipient.id, default: []].append(MatchEngine.boostedGift(rng: &giftRNG))
-            }
-            match.matchRNG = giftRNG
+            var queue = match.pendingGifts[nextPlayer.id] ?? []
+            for _ in 0..<giftCount { queue.append(.letterGem(multiplier: 3)) }
+            match.pendingGifts[nextPlayer.id] = queue
         }
 
-        // Story Mode: append the sentence and roll continuity forward.
-        if match.mode.usesStory, var story = match.story {
-            let entry = StorySentence(
-                id: story.sentences.count,
-                text: sentence,
-                words: completed.words,
-                authorID: player.id,
-                authorName: player.name,
-                score: completed.score
-            )
-            story.append(entry, entries: state.trayEntries, carriedContinuity: breakdown.combo.carriedContinuity)
-            match.story = story
-        }
-
-        advance(&match)
-        return completed
+        match.currentPlayerIndex = nextIndex
+        if nextIndex == 0 { match.roundIndex += 1 }
+        return turn
     }
 
-    private func advance(_ match: inout MatchState) {
-        match.turnsTakenThisRound += 1
-        match.currentPlayerIndex = (match.currentPlayerIndex + 1) % match.players.count
-
-        guard match.turnsTakenThisRound >= match.turnsPerRound else { return }
-        match.turnsTakenThisRound = 0
-        match.roundIndex += 1
-
-        if match.mode.usesStory, var story = match.story {
-            var rng = match.matchRNG
-            let next = MatchEngine.drawEndingWord(pool: reducer.pool, rng: &rng) ?? story.endingWord
-            match.matchRNG = rng
-            story.closeChapter(nextEndingWord: next)
-            match.story = story
-        }
-    }
-
-    /// Gifting is intentionally the mathematically-correct warm fuzzy: what you
-    /// pass along arrives stronger than if you had kept it.
-    static func boostedGift(rng: inout SeededRNG) -> BonusKind {
-        let options: [BonusKind] = [.wordGem(multiplier: 3), .sentenceStar, .extraTry, .extraTry]
-        return rng.pick(options) ?? .extraTry
-    }
-
-    public static func drawEndingWord(pool: WordPool, rng: inout SeededRNG) -> String? {
-        let candidates = pool.words(tagged: "ending")
-        return rng.pick(candidates.isEmpty ? pool.words.filter(\.isNounCapable) : candidates)?.text
-    }
-
-    // MARK: Remote play
-
-    /// Re-runs an incoming turn from `(seed, actions)` and reports whether the
-    /// score matches what the sender claimed. No server needed: every device is
-    /// its own referee (ARCHITECTURE.md §9.1).
-    public func verify(_ turn: CompletedTurn, context: TurnContext) -> Bool {
-        let (state, _) = reducer.replay(
-            seed: turn.seed,
+    /// Re-runs a turn from `(seed, actions)` and returns the score it produces.
+    ///
+    /// This is what makes remote play cheat-resistant without a server: the
+    /// receiving device recomputes rather than trusting the number it was sent.
+    public func verify(_ turn: CompletedTurn, category: WordCategory, teamStreak: Int) -> Int? {
+        var state = TurnState(
             playerID: turn.playerID,
-            actions: turn.actions,
-            gifts: turn.giftsReceived,
-            context: context
+            categoryID: turn.categoryID,
+            categoryName: turn.categoryName,
+            config: reducer.config,
+            rng: SeededRNG(seed: turn.seed)
         )
-        guard state.phase == .locked else { return false }
-        let validation = reducer.validator.validate(state.tray)
-        let combo = context.mode.usesStory
-            ? reducer.combos.detect(tray: state.tray, story: context.story, isFinalTurnOfChapter: context.isFinalTurnOfChapter)
-            : ComboResult()
-        let recomputed = reducer.scorer.score(
-            tray: state.tray,
-            context: ScoreCalculator.Context(
-                validation: validation,
-                triesRemaining: state.triesRemaining,
-                sentenceStars: state.sentenceStars,
-                teamStreak: context.teamStreak,
-                themeTag: context.themeTag,
-                openingReelWords: state.openingReelWords,
-                reelCount: config.reelCount,
-                combo: combo
-            )
-        )
-        return recomputed.total == turn.breakdown.total
+        let context = TurnContext(teamStreak: teamStreak, category: category)
+
+        var breakdown: ScoreBreakdown?
+        for action in turn.actions {
+            let (next, effects) = reducer.reduce(state, action, context: context)
+            state = next
+            for effect in effects {
+                if case .wordLocked(let result) = effect { breakdown = result }
+            }
+        }
+        return breakdown?.total
     }
 }
 
 // MARK: - Transport
 
-/// What arrives from another device.
-public enum MatchUpdate: Sendable {
-    case turnReceived(MatchState, CompletedTurn)
-    case stateSynced(MatchState)
-    case reaction(playerID: String, emoji: String)
-    case peerJoined(Player)
-    case peerLeft(Player)
-}
-
-/// How turns move between phones. `GameCore` never knows which one is in use, so
-/// a match can start as pass-and-play and finish as remote async without the
-/// rules changing (GAME_DESIGN.md §5.2).
+/// `GameCore` never knows how bytes move. Multiplayer implements this one
+/// protocol three ways (local, Game Center async, same-room multipeer).
 public protocol MatchTransport: Sendable {
-    func send(state: MatchState, turn: CompletedTurn) async throws
-    func send(reaction: String, from playerID: String) async throws
+    func send(_ state: MatchState, turn: CompletedTurn) async throws
     var incoming: AsyncStream<MatchUpdate> { get }
 }
 
-/// Everyone on one phone. No delivery required.
-public struct LocalTransport: MatchTransport {
-    public init() {}
-    public func send(state: MatchState, turn: CompletedTurn) async throws {}
-    public func send(reaction: String, from playerID: String) async throws {}
-    public var incoming: AsyncStream<MatchUpdate> { AsyncStream { $0.finish() } }
+public struct MatchUpdate: Sendable {
+    public let state: MatchState
+    public let turn: CompletedTurn?
+
+    public init(state: MatchState, turn: CompletedTurn?) {
+        self.state = state
+        self.turn = turn
+    }
+}
+
+/// Pass-and-play on a single device.
+public final class LocalTransport: MatchTransport, @unchecked Sendable {
+    private var continuation: AsyncStream<MatchUpdate>.Continuation?
+    public let incoming: AsyncStream<MatchUpdate>
+
+    public init() {
+        var captured: AsyncStream<MatchUpdate>.Continuation?
+        incoming = AsyncStream { captured = $0 }
+        continuation = captured
+    }
+
+    public func send(_ state: MatchState, turn: CompletedTurn) async throws {
+        continuation?.yield(MatchUpdate(state: state, turn: turn))
+    }
 }

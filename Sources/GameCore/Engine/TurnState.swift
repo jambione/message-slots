@@ -1,30 +1,19 @@
 import Foundation
 
-// MARK: - Reel
+// MARK: - Reel face
 
+/// What one reel is currently showing. An empty face refills on the next spin —
+/// banking a letter does *not* retire its reel. That is what lets a word grow
+/// past five letters across three tries: the tray is the memory, the reels are
+/// the churn.
 public struct ReelFace: Codable, Hashable, Sendable {
-    public var token: Token?
-    /// Rust tokens lose value while the player hesitates.
-    public var rustDecayApplied: Int
+    public var token: ReelToken?
 
-    public init(token: Token? = nil, rustDecayApplied: Int = 0) {
-        self.token = token
-        self.rustDecayApplied = rustDecayApplied
-    }
+    public init(token: ReelToken? = nil) { self.token = token }
 
-    /// Banking a word moves it to the tray for good and empties the face; the
-    /// reel then refills on the next spin. This is what lets a sentence grow
-    /// past five words — the tray is the memory, the reels are the churn.
     public var isEmpty: Bool { token == nil }
-
-    /// Every face re-spins except rust, which stays put so its decay is a real
-    /// decision rather than a coin flip.
-    public var isSpinnable: Bool { !holdsRust }
-
-    public var holdsRust: Bool {
-        if case .bonus(.rust)? = token { return true }
-        return false
-    }
+    public var tile: LetterTile? { token?.tile }
+    public var isBonus: Bool { token?.isBonus ?? false }
 }
 
 // MARK: - Phase
@@ -32,7 +21,57 @@ public struct ReelFace: Codable, Hashable, Sendable {
 public enum TurnPhase: String, Codable, Hashable, Sendable {
     case ready       // before the first spin
     case playing     // spins remain, or the player may still bank/arrange
-    case locked      // sentence submitted and scored
+    case locked      // word submitted and scored
+}
+
+// MARK: - Validity
+
+/// Why a word can or cannot be submitted.
+///
+/// Unlike the sentence era's fuzzy red/yellow/green confidence, this is binary
+/// and fully explainable: the word is in the category or it isn't. Every
+/// rejection can state its own reason in terms the player will accept, which is
+/// the whole benefit of moving from sentences to words.
+public struct WordCheck: Hashable, Sendable {
+    public enum Verdict: Hashable, Sendable {
+        case empty
+        case tooShort(minimum: Int)
+        /// Spelled something, but not a member of the active category.
+        case notInCategory(word: String, category: String)
+        case valid(word: String)
+    }
+
+    public let verdict: Verdict
+
+    public init(verdict: Verdict) { self.verdict = verdict }
+
+    public var isSubmittable: Bool {
+        if case .valid = verdict { return true }
+        return false
+    }
+
+    public var word: String? {
+        switch verdict {
+        case .valid(let w), .notInCategory(let w, _): return w
+        default: return nil
+        }
+    }
+
+    /// Player-facing nudge shown under the tray.
+    public var message: String {
+        switch verdict {
+        case .empty:
+            return "Bank letters to spell a word"
+        case .tooShort(let minimum):
+            return "Words need at least \(minimum) letters"
+        case .notInCategory(let word, let category):
+            return "\(word) isn't in \(category)"
+        case .valid(let word):
+            return "\(word) — good to go"
+        }
+    }
+
+    public static let empty = WordCheck(verdict: .empty)
 }
 
 // MARK: - Turn state
@@ -43,91 +82,100 @@ public enum TurnPhase: String, Codable, Hashable, Sendable {
 /// makes remote play verifiable and teammate-turn replay possible.
 public struct TurnState: Codable, Hashable, Sendable {
     public var playerID: String
+    /// The category this turn's word must belong to. Chosen before the first
+    /// spin so the player can aim at it rather than discover it afterwards.
+    public var categoryID: String
+    public var categoryName: String
+
     public var reels: [ReelFace]
-    public var tray: [PlacedWord]
+    /// Banked letters, in the order they spell the word.
+    public var tray: [PlacedLetter]
     public var triesRemaining: Int
     public var phase: TurnPhase
 
-    /// Multiplier waiting to attach to the next word banked.
-    public var pendingGem: Int?
-    public var sentenceStars: Int
-    /// Bonuses the player is holding (swap, gift, wild card).
+    /// Multiplier waiting to attach to the next letter banked.
+    public var pendingLetterGem: Int?
+    /// Multiplier applied to the finished word.
+    public var wordMultiplier: Int
+    /// Bonuses the player is holding (swap, gift, blank).
     public var heldBonuses: [BonusKind]
     /// Reel index currently enjoying free re-spins, if any.
     public var frenzyReel: Int?
     public var frenzySpinsUsed: Int
 
-    /// Words shown on the opening spin, for the "Full House" style bonus.
-    public var openingReelWords: Set<String>
+    /// Letters shown on the opening spin, for the "used the whole opening rack"
+    /// bonus. Stored as a string because `Character` isn't `Codable` and this
+    /// value has to survive the wire for remote-play verification.
+    public var openingLetters: String
     /// Gifts received from a teammate, applied at turn start.
     public var receivedGifts: [BonusKind]
 
     public var rng: SeededRNG
     public var actionLog: [TurnAction]
-    public var diagnostics: [SpinDiagnostics]
-    private var nextWordID: Int
 
-    public init(playerID: String, reelCount: Int, tries: Int, seed: UInt64) {
+    public init(
+        playerID: String,
+        categoryID: String,
+        categoryName: String,
+        config: EconomyConfig = .default,
+        rng: SeededRNG
+    ) {
         self.playerID = playerID
-        self.reels = Array(repeating: ReelFace(), count: reelCount)
+        self.categoryID = categoryID
+        self.categoryName = categoryName
+        self.reels = Array(repeating: ReelFace(), count: config.reelCount)
         self.tray = []
-        self.triesRemaining = tries
+        self.triesRemaining = config.triesPerTurn
         self.phase = .ready
-        self.pendingGem = nil
-        self.sentenceStars = 0
+        self.pendingLetterGem = nil
+        self.wordMultiplier = 1
         self.heldBonuses = []
         self.frenzyReel = nil
         self.frenzySpinsUsed = 0
-        self.openingReelWords = []
+        self.openingLetters = ""
         self.receivedGifts = []
-        self.rng = SeededRNG(seed: seed)
+        self.rng = rng
         self.actionLog = []
-        self.diagnostics = []
-        self.nextWordID = 0
     }
 
     // MARK: Derived
 
-    public var trayEntries: [WordEntry] { tray.map(\.entry) }
-    public var hasVerb: Bool { trayEntries.contains(where: \.isVerbCapable) }
-    public var hasNoun: Bool { trayEntries.contains(where: \.isNounCapable) }
-    public var wordsOnTable: Set<String> { Set(reels.compactMap(\.token?.word?.text)) }
-    public var canSpin: Bool { phase != .locked && (triesRemaining > 0 || frenzyReel != nil) }
-    /// Free spins left in the current Frenzy, if one is running.
-    public func frenzySpinsRemaining(_ config: EconomyConfig) -> Int? {
-        frenzyReel == nil ? nil : max(0, config.maxFrenzySpins - frenzySpinsUsed)
-    }
-    public var canLockIn: Bool { phase == .playing && tray.count >= 2 }
+    /// The word currently spelled by the tray.
+    public var word: String { String(tray.map(\.tile.letter)) }
 
-    /// Categories the tray still needs before it can be a sentence. Drives the
-    /// "you need a verb!" nudge and the pity system.
-    public var missingCategories: [PartOfSpeech] {
-        var missing: [PartOfSpeech] = []
-        if !hasNoun { missing.append(.noun) }
-        if !hasVerb { missing.append(.verb) }
-        return missing
+    /// Letters the player could still use — banked plus everything on the reels.
+    public var availableLetters: [Character] {
+        tray.map(\.tile.letter) + reels.compactMap { $0.tile?.letter }
     }
 
-    mutating func takeWordID() -> Int {
-        defer { nextWordID += 1 }
-        return nextWordID
+    public var nextTrayID: Int { (tray.map(\.id).max() ?? -1) + 1 }
+
+    public var canSpin: Bool {
+        phase != .locked && (triesRemaining > 0 || frenzyReel != nil)
     }
 }
 
 // MARK: - Actions
 
-/// Everything a player can do. The action log plus the seed reproduces the turn
-/// exactly, so this enum is also the multiplayer wire format.
 public enum TurnAction: Codable, Hashable, Sendable {
     case spin
     case bank(reel: Int)
     case reorder(from: Int, to: Int)
     case removeFromTray(index: Int)
     case useSwap(trayIndex: Int)
-    case playWildCard(word: String)
+    /// Play a held blank as a chosen letter.
+    case playBlank(letter: String)
     case startFrenzy(reel: Int)
     case endFrenzy
     case lockIn
+    /// End the turn without a submittable word.
+    ///
+    /// Necessary because the category gate can genuinely strand a player: out
+    /// of tries, holding letters that spell nothing in the category. Without
+    /// this the turn simply cannot end, which is worse than scoring nothing.
+    /// The spin guarantees exist to make this rare; this exists so that rare
+    /// isn't the same as impossible.
+    case pass
 }
 
 // MARK: - Effects
@@ -137,22 +185,22 @@ public enum TurnAction: Codable, Hashable, Sendable {
 /// that played it live.
 public enum Effect: Hashable, Sendable {
     case reelsSpun([Int])
-    case wordBanked(trayIndex: Int, fromReel: Int)
-    case gemAttached(multiplier: Int, word: String)
+    case letterBanked(trayIndex: Int, fromReel: Int)
+    case gemAttached(multiplier: Int, letter: String)
+    case wordMultiplierRaised(multiplier: Int)
     case bonusCollected(BonusKind)
     case tryGranted(remaining: Int)
     case frenzyStarted(reel: Int)
     case frenzyEnded
     case trayChanged
-    /// A word pulled from the tray went back to the exact reel it came from —
+    /// A letter pulled from the tray went back to the exact reel it came from —
     /// only possible when that reel hasn't been touched since banking.
-    case wordReturnedToReel(reel: Int, word: String)
-    /// A word pulled from the tray could not be returned (its reel has moved
-    /// on, or it was a Wild Card) and is gone for the rest of the turn.
-    case wordDiscarded(word: String)
-    case rustDecayed(word: String, remaining: Int)
-    case validityChanged(ValidationResult)
-    case sentenceLocked(ScoreBreakdown)
+    case letterReturnedToReel(reel: Int, letter: String)
+    /// A letter pulled from the tray could not be returned and is gone.
+    case letterDiscarded(letter: String)
+    case blankPlayed(letter: String)
+    case wordChecked(WordCheck)
+    case wordLocked(ScoreBreakdown)
     case rejected(Rejection)
 
     public enum Rejection: String, Hashable, Sendable {
@@ -160,11 +208,11 @@ public enum Effect: Hashable, Sendable {
         case turnAlreadyLocked
         case reelNotReady
         case trayFull
-        case needTwoWords
-        case notAWord
+        case wordTooShort
+        case notInCategory
         case nothingToSwap
         case noSwapHeld
-        case noWildCardHeld
+        case noBlankHeld
         case invalidIndex
     }
 }

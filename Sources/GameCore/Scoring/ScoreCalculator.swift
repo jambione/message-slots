@@ -1,20 +1,20 @@
 import Foundation
 
 /// Every line the score-reveal animation shows, in the order it reveals them.
-/// Keeping the breakdown as data (rather than a single Int) is what lets the UI
-/// animate an honest, auditable tally instead of a made-up one.
+///
+/// Keeping the breakdown as data rather than a single Int is what lets the UI
+/// animate an honest, auditable tally instead of a made-up one. With Scrabble
+/// values the player can now check the arithmetic themselves, so the sheet has
+/// to be exactly right — there is no hiding behind opaque word values any more.
 public struct ScoreBreakdown: Codable, Hashable, Sendable {
-    public var words: [WordScore] = []
-    public var rawWordPoints = 0
+    public var word = ""
+    public var letters: [LetterScore] = []
+    public var letterPoints = 0
 
-    public var wordCount = 0
-    public var lengthMultiplier = 1.0
+    public var length = 0
+    public var lengthBonus = 0
 
-    public var isValidSentence = false
-    public var grammarMultiplier = 1.0
-
-    public var sentenceStars = 0
-    public var starMultiplier = 1.0
+    public var wordMultiplier = 1
 
     public var styleBonuses: [StyleBonus] = []
     public var styleBonusPoints = 0
@@ -25,15 +25,13 @@ public struct ScoreBreakdown: Codable, Hashable, Sendable {
     public var teamStreak = 0
     public var streakMultiplier = 1.0
 
-    public var combo = ComboResult()
-
     public var total = 0
 
-    public struct WordScore: Codable, Hashable, Sendable {
-        public let text: String
+    public struct LetterScore: Codable, Hashable, Sendable {
+        public let letter: String
         public let base: Int
-        public let gemMultiplier: Int
-        public var value: Int { base * gemMultiplier }
+        public let multiplier: Int
+        public var value: Int { base * multiplier }
     }
 
     public struct StyleBonus: Codable, Hashable, Sendable {
@@ -45,169 +43,126 @@ public struct ScoreBreakdown: Codable, Hashable, Sendable {
 
 public struct ScoreCalculator: Sendable {
     public let config: EconomyConfig
-    private let coherence = CoherenceEvaluator()
 
     public init(config: EconomyConfig) { self.config = config }
 
     /// Context the scorer needs beyond the tray itself.
     public struct Context: Sendable {
-        public var validation: ValidationResult
         public var triesRemaining: Int
-        public var sentenceStars: Int
         public var teamStreak: Int
-        public var themeTag: String?
-        /// Words that were on the very first spin of the turn, for the
-        /// "banked all five original reels" bonus.
-        public var openingReelWords: Set<String>
+        public var wordMultiplier: Int
+        /// Letters shown on the opening spin, for the "used the whole rack" bonus.
+        public var openingLetters: [Character]
         public var reelCount: Int
-        public var combo: ComboResult
 
         public init(
-            validation: ValidationResult,
             triesRemaining: Int,
-            sentenceStars: Int = 0,
             teamStreak: Int = 0,
-            themeTag: String? = nil,
-            openingReelWords: Set<String> = [],
-            reelCount: Int = 5,
-            combo: ComboResult = ComboResult()
+            wordMultiplier: Int = 1,
+            openingLetters: [Character] = [],
+            reelCount: Int = 5
         ) {
-            self.validation = validation
             self.triesRemaining = triesRemaining
-            self.sentenceStars = sentenceStars
             self.teamStreak = teamStreak
-            self.themeTag = themeTag
-            self.openingReelWords = openingReelWords
+            self.wordMultiplier = wordMultiplier
+            self.openingLetters = openingLetters
             self.reelCount = reelCount
-            self.combo = combo
         }
     }
 
-    /// The formula from GAME_DESIGN.md §4.1:
+    /// The formula:
     ///
-    ///   turn = (raw × lengthM × grammarM × starM + styleB + tryB) × streakM
-    ///   story: turn = (turn + comboB) × chainM
-    public func score(tray: [PlacedWord], context: Context) -> ScoreBreakdown {
+    ///     turn = (letterPoints × wordM + lengthBonus + styleB + tryB) × streakM
+    ///
+    /// Letter points come straight from the Scrabble table, so a player who
+    /// knows the game can predict a score before submitting. That predictability
+    /// is a real part of the appeal and worth protecting in any future tuning —
+    /// it's the thing the old opaque per-word point values never had.
+    public func score(tray: [PlacedLetter], context: Context) -> ScoreBreakdown {
         var b = ScoreBreakdown()
         guard !tray.isEmpty else { return b }
 
-        // Raw word points. A repeated word only pays once, so nobody farms
-        // "banana banana banana".
-        var counted = Set<String>()
+        b.word = String(tray.map(\.tile.letter))
+
         for placed in tray {
-            let isDuplicate = !counted.insert(placed.entry.text).inserted
-            let base = isDuplicate ? 0 : placed.entry.effectivePoints
-            b.words.append(.init(text: placed.entry.text, base: base, gemMultiplier: placed.gemMultiplier))
+            b.letters.append(.init(
+                letter: String(placed.tile.letter),
+                base: placed.tile.value,
+                multiplier: placed.multiplier
+            ))
         }
-        b.rawWordPoints = b.words.reduce(0) { $0 + $1.value }
+        b.letterPoints = b.letters.reduce(0) { $0 + $1.value }
 
-        // Length.
-        b.wordCount = tray.count
+        // Length, escalating rather than linear: stretching from four letters
+        // to six should be worth more than two average tiles, or the safe short
+        // word is almost always correct and the turn loses its arc.
+        b.length = tray.count
         let over = max(0, tray.count - config.lengthBonusFloor)
-        b.lengthMultiplier = min(1.0 + config.lengthBonusStep * Double(over), config.lengthMultiplierCap)
+        b.lengthBonus = over * over * config.lengthBonusStep
 
-        // Grammar. Word salad still pays — no turn is ever worth nothing.
-        b.isValidSentence = context.validation.isValid
-        b.grammarMultiplier = b.isValidSentence ? config.grammarValidMultiplier : config.grammarSaladMultiplier
+        b.wordMultiplier = context.wordMultiplier
 
-        // Sentence stars.
-        b.sentenceStars = context.sentenceStars
-        b.starMultiplier = 1.0 + config.sentenceStarStep * Double(context.sentenceStars)
-
-        // Style bonuses.
         b.styleBonuses = styleBonuses(tray: tray, context: context)
         b.styleBonusPoints = b.styleBonuses.reduce(0) { $0 + $1.points }
 
-        // Unused tries. Deliberately modest against the value of one more good
-        // word, so "should I stop?" stays a real question.
+        // Unused tries. Deliberately modest against one more good letter so
+        // "should I stop?" stays a real question — and with only three tries,
+        // each is worth proportionally more than it was with five.
         b.triesRemaining = context.triesRemaining
         b.tryBonusPoints = context.triesRemaining * config.pointsPerUnusedTry
 
-        // Streak, shared across the team.
         b.teamStreak = context.teamStreak
-        b.streakMultiplier = min(1.0 + config.streakStep * Double(context.teamStreak), config.streakMultiplierCap)
+        b.streakMultiplier = min(
+            1.0 + config.streakStep * Double(context.teamStreak),
+            config.streakMultiplierCap
+        )
 
-        let core = Double(b.rawWordPoints) * b.lengthMultiplier * b.grammarMultiplier * b.starMultiplier
-        var subtotal = (core + Double(b.styleBonusPoints) + Double(b.tryBonusPoints)) * b.streakMultiplier
+        let core = Double(b.letterPoints * b.wordMultiplier)
+            + Double(b.lengthBonus)
+            + Double(b.styleBonusPoints)
+            + Double(b.tryBonusPoints)
 
-        // Story combos ride on top.
-        b.combo = context.combo
-        if !context.combo.isEmpty {
-            subtotal = (subtotal + Double(context.combo.totalBonus)) * context.combo.chainMultiplier
-        }
-
-        b.total = Int(subtotal.rounded())
+        b.total = Int((core * b.streakMultiplier).rounded())
         return b
     }
 
     // MARK: Style bonuses
 
-    private func styleBonuses(tray: [PlacedWord], context: Context) -> [ScoreBreakdown.StyleBonus] {
+    private func styleBonuses(tray: [PlacedLetter], context: Context) -> [ScoreBreakdown.StyleBonus] {
         var bonuses: [ScoreBreakdown.StyleBonus] = []
-        let entries = tray.map(\.entry)
 
-        // Alliteration: three or more content words sharing an initial letter.
-        let contentWords = entries.filter { !$0.pos.allSatisfy(\.isGlue) }
-        var initials: [Character: [String]] = [:]
-        for word in contentWords {
-            guard let first = word.text.first else { continue }
-            initials[first, default: []].append(word.text)
-        }
-        // Sorted so the reported detail is stable across runs and devices —
-        // it rides in the turn payload that remote clients replay.
-        if let (letter, words) = initials.sorted(by: { $0.key < $1.key }).first(where: { $0.value.count >= 3 }) {
-            bonuses.append(.init(
-                name: "Alliteration",
-                points: config.alliterationBonus,
-                detail: "\(words.count) words starting with '\(letter)'"
-            ))
-        }
-
-        // Rhyme: two or more words sharing their last three letters.
-        var endings: [String: [String]] = [:]
-        for word in entries where word.text.count >= 4 {
-            let key = String(word.text.suffix(3))
-            endings[key, default: []].append(word.text)
-        }
-        if let (_, words) = endings.sorted(by: { $0.key < $1.key }).first(where: { Set($0.value).count >= 2 }) {
-            bonuses.append(.init(
-                name: "Rhyme",
-                points: config.rhymeBonus,
-                detail: words.joined(separator: " / ")
-            ))
-        }
-
-        // Banked every word from the opening spin.
-        if !context.openingReelWords.isEmpty,
-           context.openingReelWords.count >= context.reelCount,
-           context.openingReelWords.isSubset(of: Set(entries.map(\.text))) {
-            bonuses.append(.init(name: "Full House", points: config.allReelsBonus, detail: "all \(context.reelCount) opening reels banked"))
-        }
-
-        // Theme words, when a themed round is running.
-        if let theme = context.themeTag {
-            let themed = entries.filter { $0.tags.contains(theme) }
-            if !themed.isEmpty {
+        // Used every letter from the opening spin.
+        if !context.openingLetters.isEmpty, context.openingLetters.count >= context.reelCount {
+            var remaining: [Character: Int] = [:]
+            for letter in context.openingLetters { remaining[letter, default: 0] += 1 }
+            for placed in tray {
+                if let count = remaining[placed.tile.letter], count > 0 {
+                    remaining[placed.tile.letter] = count - 1
+                }
+            }
+            if remaining.values.allSatisfy({ $0 == 0 }) {
                 bonuses.append(.init(
-                    name: "Theme",
-                    points: config.themeWordBonus * themed.count,
-                    detail: themed.map(\.text).joined(separator: ", ")
+                    name: "Full Rack",
+                    points: config.fullRackBonus,
+                    detail: "used all \(context.reelCount) opening letters"
                 ))
             }
         }
 
-        // Makes Sense: the subject and verb are both tagged and plausibly go
-        // together (Language/SemanticCoherence.swift). This never subtracts —
-        // an untagged pool or a merely grammatical-but-random pairing simply
-        // doesn't earn the line, it isn't marked wrong. Grammar validity
-        // above already decided whether the turn counts at all; this only
-        // rewards the sentences that also make sense on top of that.
-        let sense = coherence.evaluate(tray)
-        if sense.isCoherent, let subject = sense.subject, let verb = sense.verb {
+        // A long word with no blanks. Blanks score zero, so building length out
+        // of real tiles is a harder feat and worth marking separately.
+        if tray.count >= config.pureWordFloor, tray.allSatisfy({ !$0.isBlank }) {
+            bonuses.append(.init(name: "All Real Tiles", points: config.pureWordBonus, detail: "no blanks"))
+        }
+
+        // The four 8–10 pointers already pay through the Scrabble table, but
+        // landing one is a moment and deserves a line of its own.
+        let heavy = tray.filter { !$0.isBlank && $0.tile.value >= 8 }
+        if !heavy.isEmpty {
             bonuses.append(.init(
-                name: "Makes Sense",
-                points: config.senseBonus,
-                detail: "\(subject) \(verb)"
+                name: "Heavy Letter",
+                points: config.heavyLetterBonus * heavy.count,
+                detail: heavy.map { String($0.tile.letter) }.joined(separator: ", ")
             ))
         }
 

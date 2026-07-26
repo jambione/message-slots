@@ -2,212 +2,152 @@ import XCTest
 @testable import GameCore
 
 final class MatchTests: XCTestCase {
-    private let reducer = Fixture.reducer()
-    private var engine: MatchEngine { MatchEngine(reducer: reducer) }
 
-    private func newMatch(mode: GameMode = .passAndPlay, players: Int = 2) -> MatchState {
+    private func engine() -> MatchEngine {
+        MatchEngine(reducer: Fixture.reducer(), pack: Fixture.pack)
+    }
+
+    private func match() -> MatchState {
         MatchState(
-            mode: mode,
-            players: (0..<players).map { Player(id: "p\($0)", name: "Player \($0)") },
-            targetScore: 1_000,
-            story: mode.usesStory ? Story(endingWord: "finally") : nil,
-            seed: 2_024
+            players: [Player(id: "a", name: "Ann"), Player(id: "b", name: "Ben")],
+            targetScore: 200,
+            seed: 777
         )
     }
 
-    /// Plays one scripted turn: forces two known words onto reels, banks them, locks in.
-    @discardableResult
-    private func playTurn(_ match: inout MatchState, words: [WordEntry]) -> CompletedTurn {
+    func testBeginningATurnAssignsACategoryUpFront() {
+        let engine = engine()
+        var match = match()
+        let state = engine.beginTurn(&match)
+
+        XCTAssertFalse(state.categoryID.isEmpty, "the player must know the category before spinning")
+        XCTAssertFalse(state.categoryName.isEmpty)
+        XCTAssertEqual(state.triesRemaining, 3)
+    }
+
+    func testScoresPoolIntoTheSharedBank() {
+        let engine = engine()
+        var match = match()
+        let state = engine.beginTurn(&match)
+
+        var breakdown = ScoreBreakdown()
+        breakdown.word = "CAT"
+        breakdown.total = 40
+        engine.completeTurn(&match, state: state, breakdown: breakdown)
+
+        XCTAssertEqual(match.teamBank, 40)
+        XCTAssertEqual(match.currentPlayer.id, "b", "the turn passes on")
+    }
+
+    func testStreakBreaksOnAScorelessTurn() {
+        let engine = engine()
+        var match = match()
+
+        for total in [30, 30, 0] {
+            let state = engine.beginTurn(&match)
+            var breakdown = ScoreBreakdown()
+            breakdown.total = total
+            engine.completeTurn(&match, state: state, breakdown: breakdown)
+        }
+        XCTAssertEqual(match.teamStreak, 0)
+    }
+
+    func testMatchCompletesWhenTargetIsReached() {
+        let engine = engine()
+        var match = match()
+        let state = engine.beginTurn(&match)
+
+        var breakdown = ScoreBreakdown()
+        breakdown.total = 250
+        engine.completeTurn(&match, state: state, breakdown: breakdown)
+        XCTAssertTrue(match.isComplete)
+    }
+
+    /// Cheat resistance without a server: the receiving device recomputes the
+    /// score from `(seed, actions)` rather than trusting the number it was sent.
+    func testATurnCanBeVerifiedByReplay() {
+        let engine = engine()
+        var match = match()
         var state = engine.beginTurn(&match)
         let context = engine.context(for: match)
-        (state, _) = reducer.reduce(state, .spin, context: context)
-        for (i, word) in words.enumerated() where i < state.reels.count {
-            state.reels[i] = ReelFace(token: .word(word))
-        }
-        for i in words.indices where i < state.reels.count {
-            (state, _) = reducer.reduce(state, .bank(reel: i), context: context)
-        }
-        let (locked, effects) = reducer.reduce(state, .lockIn, context: context)
-        guard case .sentenceLocked(let breakdown)? = effects.last(where: {
-            if case .sentenceLocked = $0 { return true }; return false
-        }) else {
-            XCTFail("turn did not lock")
-            return CompletedTurn(id: -1, playerID: "", playerName: "", seed: 0, actions: [],
-                                 giftsReceived: [], sentence: "", words: [], breakdown: ScoreBreakdown())
-        }
-        return engine.completeTurn(&match, state: locked, breakdown: breakdown)
-    }
 
-    // MARK: Turn order and the shared bank
-
-    func testTurnPassesToTheNextPlayer() {
-        var match = newMatch()
-        XCTAssertEqual(match.currentPlayer.id, "p0")
-        playTurn(&match, words: [Fixture.dog, Fixture.danced])
-        XCTAssertEqual(match.currentPlayer.id, "p1")
-        playTurn(&match, words: [Fixture.cat, Fixture.danced])
-        XCTAssertEqual(match.currentPlayer.id, "p0")
-    }
-
-    func testScoresPoolIntoOneTeamBank() {
-        var match = newMatch()
-        let first = playTurn(&match, words: [Fixture.dog, Fixture.danced])
-        let second = playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.tangoed])
-        XCTAssertEqual(match.teamBank, first.score + second.score)
-    }
-
-    func testStreakIsSharedAndBreaksOnWordSalad() {
-        var match = newMatch()
-        playTurn(&match, words: [Fixture.dog, Fixture.danced])
-        XCTAssertEqual(match.teamStreak, 1)
-        playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.tangoed])
-        XCTAssertEqual(match.teamStreak, 2)
-
-        playTurn(&match, words: [Fixture.dog, Fixture.cat])   // salad
-        XCTAssertEqual(match.teamStreak, 0, "a teammate's rough turn is everyone's problem")
-    }
-
-    func testRoundsAdvanceAfterEveryPlayerHasTakenTwoTurns() {
-        var match = newMatch(players: 2)
-        XCTAssertEqual(match.roundIndex, 1)
-        for _ in 0..<match.turnsPerRound {
-            playTurn(&match, words: [Fixture.dog, Fixture.danced])
-        }
-        XCTAssertEqual(match.roundIndex, 2)
-    }
-
-    // MARK: Story mode
-
-    func testStoryGrowsOneSentencePerTurn() {
-        var match = newMatch(mode: .story)
-        playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.danced])
-        playTurn(&match, words: [Fixture.the, Fixture.dog, Fixture.sangWord])
-
-        XCTAssertEqual(match.story?.sentences.count, 2)
-        XCTAssertEqual(match.story?.sentences.first?.text, "The octopus danced.")
-        XCTAssertEqual(match.story?.knownNouns.contains("octopus"), true)
-    }
-
-    func testContinuityRaisesTheChainAcrossTurns() {
-        var match = newMatch(mode: .story)
-        playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.danced])
-        playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.tangoed])
-        XCTAssertEqual(match.story?.chainLevel, 1)
-    }
-
-    // MARK: Gifts
-
-    func testGiftLandsOnTheNextPlayerAtHigherPotency() {
-        var match = newMatch()
-        var state = engine.beginTurn(&match)
-        let context = engine.context(for: match)
-        (state, _) = reducer.reduce(state, .spin, context: context)
-        state.reels[0] = ReelFace(token: .word(Fixture.dog))
-        state.reels[1] = ReelFace(token: .word(Fixture.danced))
-        state.reels[2] = ReelFace(token: .bonus(.gift))
-        (state, _) = reducer.reduce(state, .bank(reel: 0), context: context)
-        (state, _) = reducer.reduce(state, .bank(reel: 1), context: context)
-        (state, _) = reducer.reduce(state, .bank(reel: 2), context: context)
-        XCTAssertTrue(state.heldBonuses.contains(.gift))
-
-        let (locked, effects) = reducer.reduce(state, .lockIn, context: context)
-        guard case .sentenceLocked(let breakdown)? = effects.last else { return XCTFail("no score") }
-        engine.completeTurn(&match, state: locked, breakdown: breakdown)
-
-        XCTAssertFalse(match.pendingGifts["p1"]?.isEmpty ?? true, "the gift should be waiting for the next player")
-
-        // And it is applied as their turn opens.
-        let next = engine.beginTurn(&match)
-        let boosted = next.receivedGifts.first
-        XCTAssertNotNil(boosted)
-        XCTAssertTrue(match.pendingGifts["p1"]?.isEmpty ?? false, "gifts are consumed once applied")
-    }
-
-    // MARK: Remote play
-
-    func testAnHonestTurnVerifiesOnAnotherDevice() {
-        var match = newMatch()
-        let context = engine.context(for: match)
-        var state = engine.beginTurn(&match)
-        for action in [TurnAction.spin, .bank(reel: 0), .spin, .bank(reel: 1)] {
-            (state, _) = reducer.reduce(state, action, context: context)
-        }
-        let (locked, effects) = reducer.reduce(state, .lockIn, context: context)
-        guard case .sentenceLocked(let breakdown)? = effects.last else { return XCTFail("no score") }
-        let turn = engine.completeTurn(&match, state: locked, breakdown: breakdown)
-
-        // The receiving phone re-runs the turn from (seed, actions) alone.
-        XCTAssertTrue(engine.verify(turn, context: context))
-    }
-
-    func testATamperedScoreFailsVerification() {
-        var match = newMatch()
-        let context = engine.context(for: match)
-        var state = engine.beginTurn(&match)
-        for action in [TurnAction.spin, .bank(reel: 0), .spin, .bank(reel: 1)] {
-            (state, _) = reducer.reduce(state, action, context: context)
-        }
-        let (locked, effects) = reducer.reduce(state, .lockIn, context: context)
-        guard case .sentenceLocked(var breakdown)? = effects.last else { return XCTFail("no score") }
-        var turn = engine.completeTurn(&match, state: locked, breakdown: breakdown)
-
-        breakdown.total = 999_999
-        turn = CompletedTurn(
-            id: turn.id, playerID: turn.playerID, playerName: turn.playerName,
-            seed: turn.seed, actions: turn.actions, giftsReceived: turn.giftsReceived,
-            sentence: turn.sentence, words: turn.words, breakdown: breakdown, verdict: nil
-        )
-        XCTAssertFalse(engine.verify(turn, context: context))
-    }
-
-    func testMatchStateSurvivesTheWire() throws {
-        var match = newMatch(mode: .story)
-        playTurn(&match, words: [Fixture.the, Fixture.octopus, Fixture.danced])
-
-        let data = try JSONEncoder().encode(match)
-        let restored = try JSONDecoder().decode(MatchState.self, from: data)
-        XCTAssertEqual(match, restored)
-
-        // Small enough for a Game Center turn payload.
-        XCTAssertLessThan(data.count, 64 * 1024)
-    }
-
-    func testAMatchCanChangeTransportMidGame() {
-        var match = newMatch()
-        playTurn(&match, words: [Fixture.dog, Fixture.danced])
-        let bankBefore = match.teamBank
-
-        // Someone has to leave: finish the same match asynchronously.
-        match.connectivity = .remoteAsync
-        playTurn(&match, words: [Fixture.cat, Fixture.danced])
-
-        XCTAssertGreaterThan(match.teamBank, bankBefore, "rules must not change with the transport")
-        XCTAssertEqual(match.history.count, 2)
-    }
-
-    // MARK: Judge
-
-    func testJudgeAwardIsCappedAndOptional() async {
-        let verdict = JudgeVerdict(readsAsSentence: true, awardTitle: "Most Cinematic", awardPoints: 5_000)
-        XCTAssertEqual(verdict.awardPoints, SentenceJudgeLimits.maxAwardPoints)
-
-        let none = await NoJudge().judge(sentence: "The dog danced.", storySoFar: nil)
-        XCTAssertEqual(none.awardPoints, 0)
-    }
-
-    func testASlowJudgeCannotStallTheResultsScreen() async {
-        struct SlowJudge: SentenceJudge {
-            func judge(sentence: String, storySoFar: String?) async -> JudgeVerdict {
-                try? await Task.sleep(for: .seconds(5))
-                return JudgeVerdict(readsAsSentence: true, awardTitle: "Too Late", awardPoints: 50)
+        var claimed: ScoreBreakdown?
+        for action in [TurnAction.spin, .bank(reel: 0), .bank(reel: 1), .lockIn] {
+            let (next, effects) = engine.reducer.reduce(state, action, context: context)
+            state = next
+            for effect in effects {
+                if case .wordLocked(let result) = effect { claimed = result }
             }
         }
-        let judge = TimeLimitedJudge(SlowJudge(), limit: .milliseconds(50))
-        let verdict = await judge.judge(sentence: "The dog danced.", storySoFar: nil)
-        XCTAssertNil(verdict.awardTitle)
-    }
-}
 
-private extension Fixture {
-    static let sangWord = Fixture.word("sang", .verb, points: 2)
+        let turn = CompletedTurn(
+            playerID: state.playerID,
+            playerName: "Ann",
+            categoryID: state.categoryID,
+            categoryName: state.categoryName,
+            word: claimed?.word ?? "",
+            breakdown: claimed ?? ScoreBreakdown(),
+            seed: state.rng.seed,
+            actions: state.actionLog
+        )
+
+        let recomputed = engine.verify(turn, category: engine.category(for: match), teamStreak: 0)
+        XCTAssertEqual(recomputed, turn.breakdown.total,
+                       "a replayed turn must reproduce the same score exactly")
+    }
+
+    func testTransportCanChangeMidMatchWithoutAlteringRules() {
+        var match = match()
+        match.connectivity = .remoteAsync
+        XCTAssertEqual(match.connectivity, .remoteAsync)
+        XCTAssertEqual(match.players.count, 2, "changing transport changes nothing about play")
+    }
+
+    // MARK: Categories
+
+    func testCategoryDrawIsDeterministic() {
+        let engine = engine()
+        var first = match()
+        var second = match()
+        XCTAssertEqual(engine.drawCategory(&first).id, engine.drawCategory(&second).id)
+    }
+
+    func testCategoryPackAcceptsOnlyItsOwnWords() {
+        XCTAssertTrue(Fixture.animals.accepts("cat"), "matching is case-insensitive")
+        XCTAssertFalse(Fixture.animals.accepts("PAN"))
+    }
+
+    /// Found on the first live run: TIES was refused under Clothing because the
+    /// list had TIE. Refusing an obviously correct word reads as a broken game,
+    /// not an incomplete word list.
+    func testRegularPluralsOfListedWordsAreAccepted() {
+        XCTAssertTrue(Fixture.animals.accepts("CATS"), "CAT is listed")
+        XCTAssertTrue(Fixture.animals.accepts("BEARS"))
+
+        let category = WordCategory(id: "t", name: "T", words: ["BOX", "PUPPY", "TIE"])
+        XCTAssertTrue(category.accepts("BOXES"))
+        XCTAssertTrue(category.accepts("PUPPIES"))
+        XCTAssertTrue(category.accepts("TIES"))
+    }
+
+    /// The plural rule may only widen acceptance from a word already listed —
+    /// it must never let in something unrelated to the category.
+    func testPluralRuleCannotAdmitUnrelatedWords() {
+        XCTAssertFalse(Fixture.animals.accepts("PANS"), "PAN isn't an animal")
+        XCTAssertFalse(Fixture.animals.accepts("GLASSES"))
+        XCTAssertFalse(Fixture.animals.accepts("S"))
+    }
+
+    func testSpellableFromRespectsLetterCounts() {
+        // One E cannot spell a word needing two.
+        let category = WordCategory(id: "t", name: "T", words: ["BEE", "BE"])
+        XCTAssertEqual(category.words(spellableFrom: ["B", "E"]).sorted(), ["BE"])
+        XCTAssertEqual(category.words(spellableFrom: ["B", "E", "E"]).sorted(), ["BE", "BEE"])
+    }
+
+    func testBlanksExtendWhatIsSpellable() {
+        let category = WordCategory(id: "t", name: "T", words: ["BEE"])
+        XCTAssertTrue(category.words(spellableFrom: ["B", "E"]).isEmpty)
+        XCTAssertEqual(category.words(spellableFrom: ["B", "E"], blanks: 1), ["BEE"])
+    }
 }

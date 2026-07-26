@@ -1,84 +1,84 @@
 import Foundation
 @testable import GameCore
 
-/// Hand-built fixtures so tests never depend on the shipping pool's contents.
+/// Hand-built fixtures so tests never depend on the shipping content.
 enum Fixture {
-    static func word(
-        _ text: String, _ pos: PartOfSpeech..., tier: Rarity = .common, points: Int = 1,
-        tags: [String] = [], semantics: Set<SemanticCategory> = [], weight: Double = 1.0
-    ) -> WordEntry {
-        WordEntry(text: text, pos: Set(pos), tier: tier, points: points,
-                  tags: tags, semantics: semantics, weight: weight)
+
+    // MARK: Categories
+
+    /// A deliberately small category with good short-word coverage, so tests
+    /// can reason about exactly which words are reachable.
+    static let animals = WordCategory(
+        id: "animals",
+        name: "Animals",
+        hint: "Any creature",
+        words: ["CAT", "COW", "DOG", "RAT", "BAT", "OWL", "APE", "BEAR", "CRAB", "GOAT", "TIGER"]
+    )
+
+    /// Long words only — models the real "musical instruments" problem, where a
+    /// category is nearly unplayable without the resolver biasing letters.
+    static let longOnly = WordCategory(
+        id: "long",
+        name: "Long Things",
+        words: ["ACCORDION", "HARPSICHORD", "SAXOPHONE"]
+    )
+
+    static var pack: CategoryPack {
+        CategoryPack(id: "test", categories: [animals, longOnly])
     }
 
-    static let the = word("the", .article)
-    static let a = word("a", .article)
-    static let dog = word("dog", .noun)
-    static let cat = word("cat", .noun)
-    static let octopus = word("octopus", .noun, tier: .uncommon, points: 5)
-    static let grumpy = word("grumpy", .adjective, points: 2)
-    static let tangoed = word("tangoed", .verb, tier: .uncommon, points: 5)
-    static let danced = word("danced", .verb, points: 2)
-    static let magnificently = word("magnificently", .adverb, tier: .uncommon, points: 7)
-    static let quickly = word("quickly", .adverb, points: 2)
-    static let under = word("under", .preposition)
-    static let table = word("table", .noun)
-    static let and = word("and", .conjunction)
-    static let meanwhile = word("meanwhile", .conjunction, tier: .uncommon, points: 4)
-    static let it = word("it", .pronoun)
-    static let they = word("they", .pronoun)
-    static let happy = word("happy", .adjective)
-    static let isVerb = word("is", .verb, semantics: Set(SemanticCategory.allCases))
-    static let banana = word("banana", .noun, points: 2)
-    static let pirate = word("pirate", .noun, points: 2, tags: ["pirate"])
-    static let finally = word("finally", .adverb, tier: .uncommon, points: 3, tags: ["ending"])
+    // MARK: Tiles
 
-    // MARK: Semantic coherence fixtures
-    // A compatible pair (parrot/flew both "animate"), an incompatible-but-still-
-    // grammatical pair (parrot/overflowed — no shared category), and an
-    // untagged pair reusing `dog`/`danced` above, all live side by side so
-    // tests can assert the bonus fires, silently doesn't, and never rejects.
-    static let parrot = word("parrot", .noun, points: 2, semantics: [.animate])
-    static let flew = word("flew", .verb, points: 2, semantics: [.animate])
-    static let pond = word("pond", .noun, points: 2, semantics: [.place])
-    static let overflowed = word("overflowed", .verb, points: 2, semantics: [.place, .object])
-    static let melted = word("melted", .verb, points: 2, semantics: [.food, .object, .abstract])
+    static func tile(_ letter: Character, blank: Bool = false) -> LetterTile {
+        LetterTile(letter, isBlank: blank)
+    }
 
-    /// Builds a tray, assigning ids in order.
-    static func tray(_ entries: [WordEntry], gems: [Int: Int] = [:], sourceReels: Bool = false) -> [PlacedWord] {
-        entries.enumerated().map { index, entry in
-            PlacedWord(
+    /// Builds a tray spelling `word`, assigning ids in order.
+    static func tray(_ word: String, multipliers: [Int: Int] = [:], blanks: Set<Int> = []) -> [PlacedLetter] {
+        Array(word.uppercased()).enumerated().map { index, letter in
+            PlacedLetter(
                 id: index,
-                entry: entry,
-                gemMultiplier: gems[index] ?? 1,
-                isWild: false,
-                sourceReel: sourceReels ? index : nil
+                tile: LetterTile(letter, isBlank: blanks.contains(index)),
+                multiplier: multipliers[index] ?? 1,
+                sourceReel: index
             )
         }
     }
 
-    /// A small but sentence-capable pool for engine tests.
-    static var pool: WordPool {
-        WordPool(id: "test", words: [
-            the, a, dog, cat, octopus, grumpy, tangoed, danced, magnificently, they,
-            quickly, under, table, and, meanwhile, it, happy, isVerb, banana,
-            pirate, finally, parrot, flew, pond, overflowed, melted,
-            word("ran", .verb),
-            word("sang", .verb, points: 2),
-            word("moon", .noun, points: 2),
-            word("robot", .noun, points: 2),
-            word("tiny", .adjective, points: 2),
-            word("because", .conjunction, points: 2),
-            word("beyond", .preposition, tier: .uncommon, points: 3),
-            word("kerfuffle", .noun, tier: .legendary, points: 10),
-            word("flabbergasted", .verb, tier: .rare, points: 8),
-            word("iridescent", .adjective, tier: .rare, points: 7)
-        ])
-    }
-
-    static var validator: SentenceValidator { SentenceValidator() }
+    // MARK: Engine
 
     static func reducer(config: EconomyConfig = .default) -> TurnReducer {
-        TurnReducer(config: config, pool: pool, validator: validator)
+        TurnReducer(config: config)
+    }
+
+    static func turn(
+        category: WordCategory = Fixture.animals,
+        config: EconomyConfig = .default,
+        seed: UInt64 = 20_260_726
+    ) -> TurnState {
+        TurnState(
+            playerID: "test",
+            categoryID: category.id,
+            categoryName: category.name,
+            config: config,
+            rng: SeededRNG(seed: seed)
+        )
+    }
+
+    static func context(
+        category: WordCategory = Fixture.animals,
+        streak: Int = 0
+    ) -> TurnContext {
+        TurnContext(mode: .passAndPlay, teamStreak: streak, category: category)
+    }
+
+    /// Forces specific letters onto the reels so a test can bank deterministically.
+    static func withReels(_ state: TurnState, _ letters: String) -> TurnState {
+        var state = state
+        state.phase = .playing
+        for (index, letter) in Array(letters.uppercased()).enumerated() where index < state.reels.count {
+            state.reels[index] = ReelFace(token: .letter(LetterTile(letter)))
+        }
+        return state
     }
 }

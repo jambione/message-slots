@@ -75,9 +75,20 @@ This mirrors trading-card and gacha-game rarity conventions players already read
 
 ## 4. Reels
 
-### 4.1 Current state (prototype)
+### 4.1 Current state — cabinet built
 
-Flat rounded rectangles, one per reel, showing either a word token, a bonus token, or an empty/dotted placeholder. No spin animation yet — tokens simply appear.
+Reference: the Hearthstone matchmaking reel. Adopted from it, all drawn procedurally (no texture assets, so it scales and can be re-coloured per skin):
+
+- **Gunmetal cabinet** (`CabinetFrame`) — brushed diagonal-gradient panelling, inset recess, top-edge sheen implying a light source above, screw-head rivets at the corners. Rivets are the cheapest possible cue that a surface is a manufactured object rather than a drawn rectangle.
+- **Brass bezel** per reel, over a black recessed well.
+- **Motion-blur streaks** (`ReelBlur`) while spinning — *vertical* lines, because a spinning drum preserves vertical edges while horizontal detail smears. Line positions are fixed per reel and only their brightness scrolls, so the surface reads as one continuous object rather than noise. A hot white centre bleed matches the reference's brightest region.
+- **Ember sparks** (`EmberField`) thrown from the left and right reel edges during spin — friction, not confetti, which is why they cluster at the borders rather than scattering.
+- **Gold payline chevrons** on mounting plates either side, aimed at the reel row.
+- **Staggered stop**, left to right (0.42s base, 0.13s per reel), with an overshoot-and-settle spring on landing.
+
+**One deliberate divergence from the reference.** There, the spinning reel is a flat red smear because it's a loading animation and its contents are irrelevant. Here the reels carry words the player must read and choose between, so legibility outranks spectacle: blur applies only while a reel is genuinely in motion, resolves completely on settle, and the cabinet's warm brass palette never tints the category colours (§2.2), which stay load-bearing for gameplay.
+
+**Still to do:** parchment title/footer banners (very characteristic of the reference and currently absent), more ornate corner bracketry, and a reel-block reaction to the lever pull (§4.3). Tokens are also slightly cramped at the current reel height and want more vertical room.
 
 ### 4.2 Target motion design
 
