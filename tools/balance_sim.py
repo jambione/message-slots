@@ -265,15 +265,33 @@ def spin(rng, pool, reels, tray, tries_remaining, excluded):
             used.add(word["text"])
             faces[reel] = {"word": word}
 
-    # Dead-end guarantee.
+    # Dead-end guarantee. Mirrors SpinResolver.repairIfDeadEnd — including the
+    # protection of reels that already supply a role, whether the repair placed
+    # the word or the spin landed it. Without that, the NOUN pass overwrites the
+    # only verb and hands back a table no sentence can be built from.
     repaired = False
-    for needed, in_tray in (("VERB", any(w["verb_like"] for w in tray)),
-                            ("NOUN", any(w["noun_like"] for w in tray))):
+    protected = set()
+
+    def supplies(word, role):
+        return word["noun_like"] if role == "NOUN" else role in word["pos"]
+
+    needs = (("VERB", any(w["verb_like"] for w in tray)),
+             ("NOUN", any(w["noun_like"] for w in tray)))
+
+    for needed, in_tray in needs:
+        if in_tray:
+            continue
+        providers = [r for r, f in faces.items() if "word" in f and supplies(f["word"], needed)]
+        if len(providers) == 1:
+            protected.add(providers[0])
+
+    for needed, in_tray in needs:
         spun = [f["word"] for f in faces.values() if "word" in f]
-        present = any(needed in w["pos"] for w in spun)
+        present = any(supplies(w, needed) for w in spun)
         if in_tray or present:
             continue
-        targets = [r for r in reels if "word" in faces.get(r, {})] or list(reels)
+        available = [r for r in reels if r not in protected]
+        targets = [r for r in available if "word" in faces.get(r, {})] or available
         if not targets:
             continue
         options = [w for w in pool
@@ -282,6 +300,7 @@ def spin(rng, pool, reels, tray, tries_remaining, excluded):
                    and w["text"] not in excluded]
         if options:
             faces[targets[-1]] = {"word": rng.choice(options)}
+            protected.add(targets[-1])
             repaired = True
 
     return faces, pity, repaired

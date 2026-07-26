@@ -93,9 +93,18 @@ final class TurnEngineTests: XCTestCase {
 
     func testLockedTurnRejectsFurtherActions() {
         var state = startedTurn()
-        (state, _) = reducer.reduce(state, .bank(reel: 0))
-        (state, _) = reducer.reduce(state, .bank(reel: 1))
+        // Bank two *word* faces specifically: a bonus face attaches to the turn
+        // instead of filling the tray, and lock-in needs two words. Hard-coding
+        // reels 0 and 1 made this depend on where the seed happened to put a bonus.
+        let wordReels = state.reels.indices.filter { state.reels[$0].token?.word != nil }
+        for reel in wordReels.prefix(2) {
+            (state, _) = reducer.reduce(state, .bank(reel: reel))
+        }
+        XCTAssertEqual(state.tray.count, 2, "precondition: two words banked")
+
         (state, _) = reducer.reduce(state, .lockIn)
+        XCTAssertEqual(state.phase, .locked, "precondition: the turn actually locked")
+
         let (_, effects) = reducer.reduce(state, .spin)
         XCTAssertEqual(effects, [.rejected(.turnAlreadyLocked)])
     }
@@ -125,6 +134,30 @@ final class TurnEngineTests: XCTestCase {
     func testEverySpinOffersASubjectAndAVerb() {
         for seed in UInt64(0)..<300 {
             let (state, _) = reducer.replay(seed: seed, playerID: "p1", actions: [.spin])
+            let words = state.reels.compactMap(\.token?.word)
+            XCTAssertTrue(words.contains(where: \.isNounCapable), "seed \(seed): no noun-capable face")
+            XCTAssertTrue(words.contains(where: \.isVerbCapable), "seed \(seed): no verb-capable face")
+        }
+    }
+
+    /// Regression: seed 112 lands a verb and no noun, so the noun repair has to
+    /// overwrite *something* — and it used to choose the lone verb, because only
+    /// reels the repair had written itself were protected. The spin came back
+    /// with no way to build a sentence at all.
+    func testNounRepairPreservesANaturallyLandedVerb() {
+        let (state, _) = reducer.replay(seed: 112, playerID: "p1", actions: [.spin])
+        let words = state.reels.compactMap(\.token?.word)
+        XCTAssertTrue(words.contains(where: \.isVerbCapable), "the lone verb was sacrificed to supply a noun")
+        XCTAssertTrue(words.contains(where: \.isNounCapable))
+    }
+
+    /// The guarantee has to hold for the pool players actually spin. The fixture
+    /// pool is small enough to hide this — the same defect showed on ~1% of
+    /// opening spins against the shipped pool and on 2% of fixture seeds.
+    func testShippedPoolAlwaysOffersASubjectAndAVerb() throws {
+        let shipped = TurnReducer(config: .default, pool: try WordPool.bundled(), validator: Fixture.validator)
+        for seed in UInt64(0)..<2000 {
+            let (state, _) = shipped.replay(seed: seed, playerID: "p1", actions: [.spin])
             let words = state.reels.compactMap(\.token?.word)
             XCTAssertTrue(words.contains(where: \.isNounCapable), "seed \(seed): no noun-capable face")
             XCTAssertTrue(words.contains(where: \.isVerbCapable), "seed \(seed): no verb-capable face")

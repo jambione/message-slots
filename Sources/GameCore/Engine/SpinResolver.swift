@@ -214,9 +214,23 @@ public struct SpinResolver: Sendable {
         rng: inout SeededRNG
     ) -> Bool {
         var repaired = false
-        // Reels already used to fix one role must not be sacrificed to fix the
-        // other — otherwise the noun repair overwrites the verb we just placed.
+        // Reels supplying a role must not be sacrificed to fix the other —
+        // otherwise the noun repair overwrites the verb, re-creating the dead
+        // end this function exists to prevent. That covers roles the repair
+        // places *and* roles the spin landed on its own.
         var protectedReels = Set<Int>()
+
+        /// Protects the only face supplying `role`. A role with two providers can
+        /// spare one; a role already banked needs no face at all.
+        func protectSoleProvider(of role: PartOfSpeech, alreadyInTray: Bool) {
+            guard !alreadyInTray else { return }
+            let providers = faces.filter { _, token in
+                guard let word = token.word else { return false }
+                return role == .noun ? word.isNounCapable : word.can(be: role)
+            }.keys
+            guard providers.count == 1, let only = providers.first else { return }
+            protectedReels.insert(only)
+        }
 
         func satisfy(_ needed: PartOfSpeech, alreadyInTray: Bool) {
             // Recomputed each call: a repair for one role may have supplied the other.
@@ -242,6 +256,8 @@ public struct SpinResolver: Sendable {
             repaired = true
         }
 
+        protectSoleProvider(of: .verb, alreadyInTray: context.trayHasVerb)
+        protectSoleProvider(of: .noun, alreadyInTray: context.trayHasNoun)
         satisfy(.verb, alreadyInTray: context.trayHasVerb)
         satisfy(.noun, alreadyInTray: context.trayHasNoun)
         return repaired
